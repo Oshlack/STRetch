@@ -1,0 +1,12 @@
+name: STR
+channels:
+- bioconda
+dependencies:
+- python=3*
+- BioPython
+- PyVCF
+- pysam
+- pandas
+- bedtools
+- htslib
+- pybedtools
