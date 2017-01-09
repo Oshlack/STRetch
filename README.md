@@ -24,8 +24,11 @@ R 3 (tested on R version 3.3.1)
 Command line tools
 - BWA (version with bwa mem)
 - Samtools
-- BedTools (this will already be installed by environment.yml as part of the
-    python dependencies)
+
+These commandline tools are required, but will already be installed by 
+environment.yml as part of the python dependencies
+- BedTools
+- goleft
 
 ### Reference data
 
