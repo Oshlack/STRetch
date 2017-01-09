@@ -42,7 +42,7 @@ tryCatch({
 
 #XXX hardcoded variables for testing
 base.filename = arguments$out #'decoySTR_ataxia'#
-data.dir = #arguments$dir #'/Users/hd_vlsci/Documents/git/micro-genotyper/repeat_genotyper_R/data/ataxia_wgs'
+data.dir = arguments$dir #'/Users/hd_vlsci/Documents/git/micro-genotyper/repeat_genotyper_R/data/ataxia_wgs'
 
 locuscov.files = list.files(data.dir, 'locus_counts.txt$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STRcoverage.txt$', full.names = TRUE)
