@@ -1,27 +1,22 @@
 // Bpipe pipeline to detect pathogenic STR expansions from exome data
-// Set up to run on Meerkat cluster at MCRI
 
-//STRetch installation location
-STRETCH='../'
+// Variables are set in pipeline_config.groovy
 
-// Decoy reference assumed to have matching .genome file in the same directory
-DECOY_REF="$STRETCH/reference-data/hg19.STRdecoys.sorted.fasta"
-EXOME_TARGET="$STRETCH/reference-data/hg19_RefSeq_coding.sorted.bed"
-STR_BED=REF_DIR + '/hg19.simpleRepeat_period1-6.bed'
-
-// Software
-PYTHON='/group/bioi1/harrietd/src/miniconda3/envs/STR/bin/python'
-
-// Adjust parameters
-PLATFORM='illumina'
+///////////////////
+// Helper functions
 
 def get_fname(path) {
     x = path.split('/')[-1]
     return(x)
 }
 
-/////////////////////////////
-// Stages
+//////////////////////////////////
+// Stages common to all pipelines
+
+
+/////////////////////////////////////
+// Stages specific to exome pipeline
+
 
 set_sample_info = {
 
@@ -30,8 +25,6 @@ set_sample_info = {
     branch.sample = branch.name
 
     }
-
-threads=8
 
 @preserve("*.bam")
 align_bwa = {
@@ -62,7 +55,9 @@ STR_coverage = {
     transform("bam") to ("STR_counts") {
         exec """
             bedtools coverage -counts
-            -a $STRETCH/reference-data/STRdecoys.bed
+            -sorted 
+            -g ${DECOY_REF}.genome
+            -a $DECOY_BED
             -b $input.bam > $output.STR_counts
         """
     }
@@ -79,22 +74,13 @@ STR_locus_counts = {
     }
 }
 
-@transform('coverage')
-coverage = {
-    exec """
-        bedtools coverage
-            -sorted -d
-            -g ${DECOY_REF}.genome
-            -a $EXOME_TARGET
-            -b $input.bam
-            > $output.coverage
-     ""","bedtools"
-}
-
 @transform('median_cov')
 median_cov = {
+
+doc "Calculate the median coverage over the target region"
+
     exec """
-        cut -f 8 $input.coverage  | sort -n | awk -f $STRETCH/scripts/median.awk > $output.median_cov
+        goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov 
      """
 }
 
@@ -102,18 +88,7 @@ estimate_size = {
         exec "$STRETCH/scripts/estimateSTR.R"
 }
 
-/////////////////////////////
-// Run pipeline
+///////////////////////////////////
+// Stages specific to WGS pipeline
 
 
-run {
-    '%_R*.fastq.gz' * [
-        set_sample_info +
-        align_bwa + index_bam +
-        STR_locus_counts +
-        coverage +
-        median_cov +
-        STR_coverage +
-        estimate_size
-    ]
-}
