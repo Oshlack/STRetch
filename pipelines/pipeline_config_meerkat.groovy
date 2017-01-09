@@ -10,6 +10,7 @@ DECOY_REF="$STRETCH/reference-data/hg19.STRdecoys.sorted.fasta"
 STR_BED="$STRETCH/reference-data/hg19.simpleRepeat_period1-6.bed"
 DECOY_BED="$STRETCH/reference-data/STRdecoys.sorted.bed"
 
+// For exome pipeline only
 EXOME_TARGET="/group/bioi1/harrietd/ref-data/hg19_RefSeq_coding.sorted.bed"
 
 // Software
