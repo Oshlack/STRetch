@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
 
 option_list = list(
   make_option("--dir",
-              help = paste("Working directory containing STR/locus count data and ...",
+              help = paste("Working directory containing STR/locus count data and median coverage",
                            "[default: %default]"),
               type = "character",
               default = '.'),
@@ -16,7 +16,12 @@ option_list = list(
               help = paste("Prefix for all output files",
                            "[default: %default]"),
               type = "character",
-              default = '')
+              default = ''),
+  make_option("--model",
+              help = paste("Data to produce linear regression model (provided with STRetch)",
+                           "[default: %default]"),
+              type = "character",
+              default = 'STRcov.model.csv')
 )
 
 parser = OptionParser(
@@ -39,16 +44,14 @@ tryCatch({
 )
 
 ## Main
-
-#XXX hardcoded variables for testing
-base.filename = arguments$out #'decoySTR_ataxia'#
-data.dir = arguments$dir #'/Users/hd_vlsci/Documents/git/micro-genotyper/repeat_genotyper_R/data/ataxia_wgs'
+base.filename = arguments$out
+data.dir = arguments$dir
+STRcov.model.csv = arguments$model
 
 locuscov.files = list.files(data.dir, 'locus_counts.txt$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STRcoverage.txt$', full.names = TRUE)
-genomecov.files = list.files(data.dir, 'metrics$', full.names = TRUE)
-metadata = read.delim(paste(data.dir, "/ataxia_wgs_metadata.txt", sep = ""), stringsAsFactors=FALSE) #XXX make this an optional input
-STRcov.model.csv = '/Users/hd_vlsci/Documents/git/micro-genotyper/repeat_genotyper_R/STRcov.bed.AGC.csv' #XXX need to set in options
+genomecov.files = list.files(data.dir, 'median_cov$', full.names = TRUE)
+#metadata = read.delim(paste(data.dir, "/ataxia_wgs_metadata.txt", sep = ""), stringsAsFactors=FALSE) #XXX make this an optional input?
 
 # Only load packages once files have been read, to save time during program startup when debugging.
 suppressPackageStartupMessages({
@@ -68,16 +71,10 @@ get.sample = function(filename) {
 parse.STRcov = function(filename) {
   sim.id = get.sample(filename)
   
-  
   cov.data = read.table(filename, stringsAsFactors = FALSE, col.names = c('chrom', 'start', 'end', 'coverage'))
   cov.data$sample = sim.id
   cov.data$repeatunit = sapply(cov.data$chrom, function(x){ strsplit(x, '-', fixed = TRUE)[[1]][2] } )
   cov.data = cov.data[,c('sample', 'repeatunit', 'coverage')]
-  
-  id.row = which(metadata$Sample.ID == sim.id)
-  cov.data$Family.ID = metadata[id.row,'Family.ID']
-  cov.data$Sex = metadata[id.row,'Sex']
-  cov.data$Ataxia = metadata[id.row,'Ataxia']
   
   return(cov.data)
 }
@@ -93,17 +90,13 @@ parse.locuscov = function(filename) {
   return(locuscov.data[,c('sample', 'locus', 'repeatunit', 'locuscoverage')])
 }
 
+# Assumes median coverage is the top left value in the text file
 parse.genomecov = function(filename) {
   sim.id = get.sample(filename)
+  mediancov = read.table(filename)[1,1]
+  stopifnot(is.numeric(mediancov))
   
-  #GATK CollectWgsMetrics format, assuming only contains METRICS CLASS and HISTOGRAM tables
-  all.lines = readLines(filename)
-  metrics.pos = grep('## METRICS CLASS', all.lines)
-  hist.pos = grep('## HISTOGRAM', all.lines)
-  metrics = read.table(textConnection(all.lines[(metrics.pos + 1):(hist.pos - 2)]), header = TRUE)
-  hist = read.table(textConnection(all.lines[(hist.pos + 1):length(all.lines)]), header = TRUE)
-  
-  genomecov.data = data.frame(sample = sim.id, genomecov = metrics$MEDIAN_COVERAGE)
+  genomecov.data = data.frame(sample = sim.id, genomecov = mediancov)
   return(genomecov.data[,c('sample','genomecov')])
 }
 
@@ -126,11 +119,9 @@ count.differences = function(locuscov.df, STRcov.df){
 ## Parse coverage
 # parse.STRcov
 STRcov.data = ldply(lapply(STRcov.files, parse.STRcov), data.frame)
-#STRcov.data = STRcov.data[STRcov.data$sample %in% male.affected, ]
 STRcov.data$coverage = as.numeric(STRcov.data$coverage)
 # parse.locuscov
 locuscov.data = ldply(lapply(locuscov.files, parse.locuscov), data.frame)
-#locuscov.data = locuscov.data[locuscov.data$sample %in% male.affected, ]
 locuscov.data$locuscoverage = as.numeric(locuscov.data$locuscoverage)
 # Fill zeros in locuscov
 locuscov.data.wide = spread(locuscov.data, sample, locuscoverage)
@@ -138,12 +129,13 @@ locuscov.data.wide[is.na(locuscov.data.wide)] = 0
 sample.cols = which(names(locuscov.data.wide) %in% unique(locuscov.data$sample))
 locuscov.data = gather(locuscov.data.wide, sample, locuscoverage, sample.cols)
 
-
-
 # Normalise by median coverage
 genomecov.data = ldply(lapply(genomecov.files, parse.genomecov), data.frame)
 genomecov.data$genomecov = as.numeric(genomecov.data$genomecov)
-#genomecov.data = group_by(genomecov.data, sample) %>% summarise(genomecov = sum(genomecov)) #XXX need to fix? only requred if multiple files per sample
+# Check coverage is available for all samples
+stopifnot(unique(STRcov.data$sample) %in% genomecov.data$sample)
+
+#genomecov.data = group_by(genomecov.data, sample) %>% summarise(genomecov = sum(genomecov)) # future feature? only requred if multiple files per sample
 #genomecov.data = genomecov.data[genomecov.data$sample %in% male.affected, ]
 factor = 100
 
@@ -201,7 +193,7 @@ predict = 2^predict(ATXN8.lm, data.frame(coverage = locuscov.totals$total_assign
 locuscov.totals = cbind(locuscov.totals, predict)
 
 # Write all samples to a single file
-write.data = locuscov.totals[,c('sample', 'Family.ID', 'Sex', 'Ataxia', 'locus', 'repeatunit',
+write.data = locuscov.totals[,c('sample', 'locus', 'repeatunit',
                                 'totalSTRcov', 'locuscoverage', 'total_assigned', 'outlier', 'fit', 'lwr', 'upr')]
 write.data = write.data[order(write.data$outlier, decreasing = T),] #sort by outlier score
 write.csv(x = write.data, file = paste(c(base.filename, 'locuscov.totals.csv'), collapse=''), quote = FALSE, row.names=FALSE)
@@ -210,6 +202,6 @@ write.csv(x = write.data, file = paste(c(base.filename, 'locuscov.totals.csv'), 
 samples = unique(write.data$sample)
 for (sample in samples) {
   write.csv(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
-            file = paste(c(base.filename, '_', sample, '_locuscov.totals.csv'), collapse =''), 
+            file = paste(c(base.filename, '_', sample, 'locuscov.totals.csv'), collapse =''), 
             quote = FALSE, row.names=FALSE)
 }

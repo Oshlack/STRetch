@@ -25,7 +25,7 @@ Command line tools
 - BWA (version with bwa mem)
 - Samtools
 
-These commandline tools are required, but will already be installed by 
+These commandline tools are required, but will already be installed by
 environment.yml as part of the python dependencies
 - BedTools
 - goleft
@@ -78,9 +78,11 @@ There is a template, and several examples provided in the form
 ## Running STRetch
 
 Run the appropriate pipeline (exome or WGS) using bpipe:
+
 ```bpipe run STRetch/pipelines/STRetch_exome_pipeline_meerkat.groovy sample_L001_R1.fastq.gz sample_L001_R2.fastq.gz```
 
-All reads are assumed to be paired end with filenames ending in R1 and R2.
+All reads are assumed to be paired end with filenames ending in
+`_R1.fastq.gz` and `_R2.fastq.gz`.
 Multiple samples can be run in the same command and will be processed in
 parallel and their STR variation compared to find outliers. For example:
 
