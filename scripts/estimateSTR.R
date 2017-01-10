@@ -187,7 +187,7 @@ locuscov.totals = merge(locuscov.totals, z.long)
 STRcov.model = read.csv(STRcov.model.csv) 
 # Model is build from log2 data (to reduce heteroscedasticity), then converted back
 # *2 to convert from repeat units to bp
-ATXN8.lm.data = data.frame(allele = log2(STRcov.model$allele2*3), coverage = log2(STRcov.model$coverage_norm))
+ATXN8.lm.data = data.frame(allele = log2(STRcov.model$allele2), coverage = log2(STRcov.model$coverage_norm))
 ATXN8.lm = lm(data = ATXN8.lm.data, formula = allele ~ coverage)
 predict = 2^predict(ATXN8.lm, data.frame(coverage = locuscov.totals$total_assigned_log), interval="confidence")
 locuscov.totals = cbind(locuscov.totals, predict)
