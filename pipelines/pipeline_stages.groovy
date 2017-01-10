@@ -10,34 +10,33 @@ def get_fname(path) {
     return(x)
 }
 
+def get_info(filename) {
+    return(filename.split('/')[-1].split('\\.')[0].split('_'))
+}
+
 //////////////////////////////////
 // Stages common to all pipelines
 
-
-/////////////////////////////////////
-// Stages specific to exome pipeline
-
-
 set_sample_info = {
 
-    doc "Set information about the sample to be processed"
+    doc "Validate and set information about the sample to be processed"
 
-    branch.sample = branch.name
-
-    }
+    def info = get_info(input)
+    branch.sample = info[0]
+    branch.lane = info[1]
+}
 
 @preserve("*.bam")
 align_bwa = {
-    doc "Concatenate with background reads then align with bwa mem algorithm."
+    doc "Align reads with bwa mem algorithm."
 
     def fastaname = get_fname(REF)
-    from('fastq.gz', 'fastq.gz') produce(branch.name + '.bam') {
+    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
         exec """
             bwa mem -M -t $threads
-            -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:1\\tLB:${sample}\\tSM:${sample}"
-            $DECOY_REF
-            $input1.gz
-            $input2.gz |
+            -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
+            $REF
+            $inputs |
             samtools view -bSuh - | samtools sort -o $output.bam -T $output.bam.prefix
         """, "bwamem"
     }
@@ -55,8 +54,8 @@ STR_coverage = {
     transform("bam") to ("STR_counts") {
         exec """
             bedtools coverage -counts
-            -sorted 
-            -g ${DECOY_REF}.genome
+            -sorted
+            -g ${REF}.genome
             -a $DECOY_BED
             -b $input.bam > $output.STR_counts
         """
@@ -74,16 +73,6 @@ STR_locus_counts = {
     }
 }
 
-@transform('median_cov')
-median_cov = {
-
-doc "Calculate the median coverage over the target region"
-
-    exec """
-        goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov 
-     """
-}
-
 estimate_size = {
         exec "$STRETCH/scripts/estimateSTR.R"
 }
@@ -91,4 +80,25 @@ estimate_size = {
 ///////////////////////////////////
 // Stages specific to WGS pipeline
 
+@transform('median_cov')
+median_cov = {
 
+doc "Calculate the median coverage over the whole genome"
+
+    exec """
+        goleft covmed $input.bam | cut -f 1 > $output.median_cov
+     """
+}
+
+/////////////////////////////////////
+// Stages specific to exome pipeline
+
+@transform('median_cov')
+median_cov_region = {
+
+doc "Calculate the median coverage over the target region"
+
+    exec """
+        goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
+     """
+}

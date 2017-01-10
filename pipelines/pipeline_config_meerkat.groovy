@@ -6,9 +6,10 @@
 STRETCH='..'
 
 // Decoy reference assumed to have matching .genome file in the same directory
-DECOY_REF="$STRETCH/reference-data/hg19.STRdecoys.sorted.fasta"
-STR_BED="$STRETCH/reference-data/hg19.simpleRepeat_period1-6.bed"
-DECOY_BED="$STRETCH/reference-data/STRdecoys.sorted.bed"
+REF_DIR='$STRETCH/reference-data'
+REF=REF_DIR + '/hg19.STRdecoys.sorted.fasta'
+STR_BED=REF_DIR + '/hg19.simpleRepeat_period1-6.bed'
+DECOY_BED=REF_DIR + '/STRdecoys.sorted.bed'
 
 // For exome pipeline only
 EXOME_TARGET="/group/bioi1/harrietd/ref-data/hg19_RefSeq_coding.sorted.bed"

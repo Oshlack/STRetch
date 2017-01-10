@@ -5,13 +5,14 @@
 //STRetch installation location
 STRETCH='..'
 
+// Decoy reference assumed to have matching .genome file in the same directory
 REF_DIR='$STRETCH/reference-data'
 REF=REF_DIR + '/hg19.STRdecoys.fasta'
-DECOY=REF_DIR + '/STRdecoys.fasta'
-DECOY_BED=REF_DIR + '/STRdecoys.bed'
 STR_BED=REF_DIR + '/hg19.simpleRepeat_period1-6.bed'
+DECOY_BED=REF_DIR + '/STRdecoys.bed'
+
+// Software
 PYTHON='~/.conda/envs/STR/bin/python'
-PICARD='/seq/software/picard/current/bin/picard.jar'
 
 // Adjust parameters
 PLATFORM='illumina'
