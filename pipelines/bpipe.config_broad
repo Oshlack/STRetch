@@ -1,0 +1,11 @@
+
+commands {
+    bwamem {
+        memory="32g"
+    }
+
+
+    bedtools {
+        memory=8
+    }
+}
