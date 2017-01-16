@@ -1,6 +1,6 @@
 // Template Bpipe pipeline config file
 // Paths are relative to the directory the pipeline is running in, so absolute
-paths are recommended.
+// paths are recommended.
 
 //STRetch installation location
 STRETCH='/absolute/path/to/installation/STRetch'
@@ -14,7 +14,10 @@ DECOY_BED="$STRETCH/reference-data/STRdecoys.sorted.bed"
 EXOME_TARGET="path/to/exome_target_regions.bed"
 
 // Software
-PYTHON='/path/to/miniconda3/envs/STR/bin/python'
+// you may need to set absolute paths for these if source active STR is no feasible
+// e.g. python would be found in '/path/to/miniconda3/envs/STR/bin/python'
+PYTHON='python'
+GOLEFT='goleft'
 
 // Adjust parameters
 PLATFORM='illumina'
