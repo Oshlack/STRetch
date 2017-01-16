@@ -6,13 +6,14 @@
 STRETCH='..'
 
 // Decoy reference assumed to have matching .genome file in the same directory
-REF_DIR='$STRETCH/reference-data'
+REF_DIR=STRETCH + '/reference-data'
 REF=REF_DIR + '/hg19.STRdecoys.fasta'
 STR_BED=REF_DIR + '/hg19.simpleRepeat_period1-6.bed'
 DECOY_BED=REF_DIR + '/STRdecoys.bed'
 
 // Software
 PYTHON='~/.conda/envs/STR/bin/python'
+GOLEFT='~/.conda/envs/STR/bin/goleft'
 
 // Adjust parameters
 PLATFORM='illumina'

@@ -16,6 +16,7 @@ EXOME_TARGET="/group/bioi1/harrietd/ref-data/hg19_RefSeq_coding.sorted.bed"
 
 // Software
 PYTHON='/group/bioi1/harrietd/src/miniconda3/envs/STR/bin/python'
+GOLEFT='goleft'
 
 // Adjust parameters
 PLATFORM='illumina'
