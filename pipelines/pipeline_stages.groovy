@@ -74,7 +74,7 @@ STR_locus_counts = {
 }
 
 estimate_size = {
-        exec "$STRETCH/scripts/estimateSTR.R"
+        exec "$STRETCH/scripts/estimateSTR.R --model $STRETCH/scripts/STRcov.model.csv"
 }
 
 ///////////////////////////////////
