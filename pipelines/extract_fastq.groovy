@@ -3,7 +3,7 @@
 @filter('sorted')
 sort_bam = {
 // Sort by read name
-    exec "samtools sort -n $input.bam $output.prefix"
+    exec "samtools sort -n $input.bam -T $output.prefix -o $output.bam"
 }
 
 extract_fastq = {
