@@ -190,22 +190,27 @@ locuscov.totals = merge(locuscov.totals, z.long)
 # Read in the raw data for this model from a file
 STRcov.model = read.csv(STRcov.model.csv) 
 # Model is build from log2 data (to reduce heteroscedasticity), then converted back
-# *2 to convert from repeat units to bp
 ATXN8.lm.data = data.frame(allele = log2(STRcov.model$allele2), coverage = log2(STRcov.model$coverage_norm))
 ATXN8.lm = lm(data = ATXN8.lm.data, formula = allele ~ coverage)
 predict = 2^predict(ATXN8.lm, data.frame(coverage = locuscov.totals$total_assigned_log), interval="confidence")
 locuscov.totals = cbind(locuscov.totals, predict)
 
-# Write all samples to a single file
+# Specify output data columns
 write.data = locuscov.totals[,c('sample', 'locus', 'repeatunit',
                                 'totalSTRcov', 'locuscoverage', 'total_assigned', 'outlier', 'fit', 'lwr', 'upr')]
-write.data = write.data[order(write.data$outlier, decreasing = T),] #sort by outlier score
-write.csv(x = write.data, file = paste(c(base.filename, 'locuscov.totals.csv'), collapse=''), quote = FALSE, row.names=FALSE)
+#sort by outlier score then estimated size (fit), both decending
+write.data = write.data[order(write.data$outlier, write.data$fit, decreasing=T),] 
+write.data = unique(write.data) #XXX Remove duplicate rows - why do they occur?
 
 # Write individual files for each sample, remove rows where locuscoverage == 0
 samples = unique(write.data$sample)
 for (sample in samples) {
   write.csv(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
-            file = paste(c(base.filename, '_', sample, 'locuscov.totals.csv'), collapse =''), 
+            file = paste(c(base.filename, sample, '.locuscov.totals.csv'), collapse =''), 
             quote = FALSE, row.names=FALSE)
 }
+
+# Write all samples to a single file
+write.csv(x = write.data, file = paste(c(base.filename, 'locuscov.totals.csv'), collapse=''), quote = FALSE, row.names=FALSE)
+
+

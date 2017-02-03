@@ -13,7 +13,7 @@ run {
         align_bwa + index_bam +
         median_cov +
         STR_coverage +
-        STR_locus_counts +
-        estimate_size
-    ]
+        STR_locus_counts 
+    ] +
+    estimate_size
 }
