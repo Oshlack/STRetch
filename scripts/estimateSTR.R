@@ -2,6 +2,9 @@
 
 # Estimate allele lengths and find outliers at STR loci
 
+# Print traceback on failure (for debugging)
+#options(error=traceback)
+
 suppressPackageStartupMessages({
   library('optparse', quietly = TRUE)
 })
@@ -48,6 +51,7 @@ base.filename = arguments$out
 data.dir = arguments$dir
 STRcov.model.csv = arguments$model
 
+#XXX Change this so input files are provided as arguments, and check the number of files
 locuscov.files = list.files(data.dir, 'locus_counts$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STR_counts$', full.names = TRUE)
 genomecov.files = list.files(data.dir, 'median_cov$', full.names = TRUE)

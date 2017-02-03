@@ -88,7 +88,7 @@ median_cov = {
 doc "Calculate the median coverage over the whole genome"
 
     exec """
-        goleft covmed $input.bam | cut -f 1 > $output.median_cov
+        $GOLEFT covmed $input.bam | cut -f 1 > $output.median_cov
      """
 }
 
@@ -101,6 +101,6 @@ median_cov_region = {
 doc "Calculate the median coverage over the target region"
 
     exec """
-        goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
+        $GOLEFT covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
      """
 }
