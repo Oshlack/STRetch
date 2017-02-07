@@ -22,8 +22,8 @@ R 3 (tested on R version 3.3.1)
 - install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))
 
 Command line tools
-- BWA (version with bwa mem)
-- Samtools
+- BWA (requires mem algorithm - tested on version 0.7.12)
+- Samtools (tested with version 1.3.1, some older versions have different options so may require you to adapt the pipeline)
 
 These commandline tools are required, but will already be installed by
 environment.yml as part of the python dependencies
