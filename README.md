@@ -1,3 +1,5 @@
+Note: this software is still very much in development, so use at own risk, and feel free to report any bugs.
+
 # STRetch
 
 Method for detecting pathogenic STR expansions from next-gen sequencing data
