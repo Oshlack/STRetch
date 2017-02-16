@@ -34,6 +34,10 @@ environment.yml as part of the python dependencies
 
 ### Reference data
 
+**Quick start for human data:**
+You can download a bundle of pre-indexed genomes with STR decoys and
+corresponding bed files [here](https://figshare.com/s/1a39be9282c90c4860cd).
+
 Required reference files:
 - Reference genome with STR decoy chromosomes (fasta)
 - BWA indices of reference
@@ -62,10 +66,6 @@ For example:
 
 This file is produced by extracting the appropriate columns from Tandem Repeats
 Finder output.
-
-You can download a bundle of pre-indexed genomes with STR decoys and
-corresponding bed files here:
-- [TODO]
 
 ### Configuring STRetch
 
