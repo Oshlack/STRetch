@@ -56,7 +56,7 @@ def main():
 
     max_distance = args.dist
 
-    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count'])
+    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen'])
     outstream.write(out_header + '\n')
 
     #STR_bed = parse_bed(args.bed, position_base=0)
@@ -106,7 +106,7 @@ def main():
             tmp_bed = 'tmp-' + randomletters(8) + '.bed' #create temporary file for bedtools to write to and pandas to read since streams don't seem to work
             closest_STR = motif_coverage.closest(STR_bed, d=True, stream=True).saveas(tmp_bed)
             colnames = ['chr', 'start', 'stop', 'count', 'STR_chr', 'STR_start',
-            'STR_stop', 'motif', 'unknown', 'distance']
+            'STR_stop', 'motif', 'reflen', 'distance']
             df = pd.read_csv(tmp_bed, sep='\t', header=None, names=colnames)
             os.remove(tmp_bed) #delete temporary file
 
@@ -115,7 +115,7 @@ def main():
             df['motif'] = df['motif'].map(normalise_str) # Normalise the STR motif to enable comparisons
             # Remove STRs that don't match the motif
             df = df.loc[df['motif'] == normalise_str(motif), :]
-            df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count']]
+            df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count','reflen']]
             summed = df.groupby(['STR_chr', 'STR_start', 'STR_stop', 'motif'], as_index=False).aggregate(np.sum)
             summed.to_csv(outstream, sep='\t', header=False, index=False)
 
