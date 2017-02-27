@@ -103,9 +103,9 @@ locuscov.data.AGC = locuscov.data[locuscov.data$locus == my.locus,]
 locuscov.bed.AGC = merge(locuscov.data.AGC, bed.data, by='sample')
 
 # Normalise allele length to bp insertion relative to the reference
-STRcov.bed.AGC$allele1 = (locuscov.bed.AGC$allele1 - ref.allele) * nchar(my.RU)
-STRcov.bed.AGC$allele2 = (locuscov.bed.AGC$allele2 - ref.allele) * nchar(my.RU)
+#STRcov.bed.AGC$allele1 = (STRcov.bed.AGC$allele1 - ref.allele) * nchar(my.RU)
+#STRcov.bed.AGC$allele2 = (STRcov.bed.AGC$allele2 - ref.allele) * nchar(my.RU)
 
 # Write to file
-
-write.csv(x = STRcov.bed.AGC, file = outfilename, quote = FALSE, row.names=FALSE)
+out.cols = c("sample","repeatunit.x","coverage","coverage_norm","chrom","start","stop","genotype","allele1","allele2")
+write.csv(x = STRcov.bed.AGC[,out.cols], file = outfilename, quote = FALSE, row.names=FALSE)
