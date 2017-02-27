@@ -66,6 +66,13 @@ suppressPackageStartupMessages({
   library('magrittr', quietly = TRUE)
 })
 
+# Calculate the mode
+# http://stackoverflow.com/questions/2547402/is-there-a-built-in-function-for-finding-the-mode
+mymode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
 get.sample = function(filename) {
   dir.split = tail(strsplit(filename, '/', fixed = TRUE)[[1]], n = 1)
   strsplit(dir.split, '(\\.|_)', fixed = FALSE)[[1]][1]
@@ -91,7 +98,7 @@ parse.locuscov = function(filename) {
   locuscov.data$locus = paste(locuscov.data$STR_chr, locuscov.data$STR_start, locuscov.data$STR_stop, sep='-')
   locuscov.data$repeatunit = locuscov.data$motif
   locuscov.data$locuscoverage = locuscov.data$count
-  return(locuscov.data[,c('sample', 'locus', 'repeatunit', 'locuscoverage')])
+  return(locuscov.data[,c('sample', 'locus', 'repeatunit', 'reflen', 'locuscoverage')])
 }
 
 # Assumes median coverage is the top left value in the text file
@@ -127,9 +134,16 @@ STRcov.data$coverage = as.numeric(STRcov.data$coverage)
 # parse.locuscov
 locuscov.data = ldply(lapply(locuscov.files, parse.locuscov), data.frame)
 locuscov.data$locuscoverage = as.numeric(locuscov.data$locuscoverage)
+# Correct reflen metadata, where it differs between samples at the same locus
+#XXX This really shouldn't be necessary, and indicates an error in the input data
+reflenmode = function(df) {
+  df$reflen = mymode(df$reflen)
+  return(df)
+}
+locuscov.data = ungroup(group_by(locuscov.data, locus) %>% do(reflenmode(.)))
 # Fill zeros in locuscov
-locuscov.data.wide = spread(locuscov.data, sample, locuscoverage)
-locuscov.data.wide[is.na(locuscov.data.wide)] = 0
+locuscov.data.wide = spread(locuscov.data, sample, locuscoverage, fill = 0)
+#locuscov.data.wide[is.na(locuscov.data.wide)] = 0
 sample.cols = which(names(locuscov.data.wide) %in% unique(locuscov.data$sample))
 locuscov.data = gather(locuscov.data.wide, sample, locuscoverage, sample.cols)
 
@@ -147,8 +161,6 @@ STRcov.data$coverage_norm = factor * (STRcov.data$coverage + 1) / sapply(STRcov.
 STRcov.data$coverage_log = log2(STRcov.data$coverage_norm)
 locuscov.data$locuscoverage_norm = factor * (locuscov.data$locuscoverage + 1) / sapply(locuscov.data$sample, get.genomecov, genomecov.data)
 locuscov.data$locuscoverage_log = log2(locuscov.data$locuscoverage_norm)
-
-locuscov.data$locusSTR = paste(locuscov.data$repeatunit, locuscov.data$locus, sep = ' ')
 
 all.differences = ungroup(group_by(locuscov.data, sample) %>% do({count.differences(., STRcov.data[STRcov.data$sample == .$sample[1],])}))
 # Normalise by median coverage
@@ -176,7 +188,6 @@ locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
-
 total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
 locuscoverage_log_wide = acast(locuscov.totals, locus ~ sample, value.var = "locuscoverage_log")
 ## Like a z score, except using the median and IQR instead of mean and sd.
@@ -195,12 +206,22 @@ ATXN8.lm = lm(data = ATXN8.lm.data, formula = allele ~ coverage)
 predict = 2^predict(ATXN8.lm, data.frame(coverage = locuscov.totals$total_assigned_log), interval="confidence")
 locuscov.totals = cbind(locuscov.totals, predict)
 
+# Get the estimated size in terms of repeat units (total, not relative to ref)
+locuscov.totals$repeatUnits = locuscov.totals$fit/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
+locuscov.totals$repeatUnitsLwr = locuscov.totals$lwr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
+locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
+# Rename 'fit' column
+locuscov.totals$bpInsertion = locuscov.totals$fit
+
 # Specify output data columns
-write.data = locuscov.totals[,c('sample', 'locus', 'repeatunit',
-                                'totalSTRcov', 'locuscoverage', 'total_assigned', 'outlier', 'fit', 'lwr', 'upr')]
-#sort by outlier score then estimated size (fit), both decending
-write.data = write.data[order(write.data$outlier, write.data$fit, decreasing=T),] 
-write.data = unique(write.data) #XXX Remove duplicate rows - why do they occur?
+write.data = locuscov.totals[,c('sample', 'locus', 'repeatunit', 'reflen',
+                                'totalSTRcov', 'locuscoverage', 'total_assigned',
+                                'outlier', 'bpInsertion', 'repeatUnits'
+                                #,'repeatUnitsLwr', 'repeatUnitsUpr'
+                                )]
+#sort by outlier score then estimated size (bpInsertion), both decending
+write.data = write.data[order(write.data$outlier, write.data$bpInsertion, decreasing=T),]
+write.data = unique(write.data) #XXX Remove duplicate rows - why do they occur? - no duplicated rows occurring currently
 
 # Write individual files for each sample, remove rows where locuscoverage == 0
 samples = unique(write.data$sample)
