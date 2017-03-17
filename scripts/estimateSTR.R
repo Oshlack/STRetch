@@ -1,4 +1,3 @@
-#!/usr/bin/env Rscript
 
 # Estimate allele lengths and find outliers at STR loci
 
