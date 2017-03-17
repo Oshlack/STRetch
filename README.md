@@ -5,7 +5,6 @@ Note: this software is still very much in development, so use at own risk, and f
 Method for detecting pathogenic STR expansions from next-gen sequencing data
 
 ## Installing STRetch
-- [TODO]
 
 ### Requirements
 
@@ -52,8 +51,8 @@ You can generate this by adding concatenating STRdecoys.fasta to the end of
 any reference genome in fasta format, and then indexing the result.
 For example:
 ```
-cat ucsc.hg19.fasta STRdecoys.fasta > ucsc.hg19.STRdecoys.fasta
-bwa index ucsc.hg19.STRdecoys.fasta
+$ cat ucsc.hg19.fasta STRdecoys.fasta > ucsc.hg19.STRdecoys.fasta
+$ bwa index ucsc.hg19.STRdecoys.fasta
 ```
 
 STRetch also requires a bed file specifying the position of all STRs in the
@@ -76,6 +75,56 @@ of software and reference files.
 There is a template, and several examples provided in the form
 `pipeline_config_[cluster-name].groovy`.
 
+### Sample Installation
+
+This is an example of installing STRetch in my home directory on the Broad
+cluster, where BWA and Samtools, Bpipe, Conda and R are already installed:
+
+```
+$ cd /home/unix/hdashnow/git
+$ git clone git@github.com:hdashnow/STRetch.git
+```
+Download reference data (approx. 12 Gig, so could take a while, I find
+downloading directly from Figshare using the browser to be faster)
+```
+$ cd /group/bioi1/harrietd/git/STRetch
+$ mkdir reference-data
+$ cd reference-data
+$ wget -O reference-data.zip https://ndownloader.figshare.com/articles/4658701?private_link=1a39be9282c90c4860cd
+$ unzip reference-data.zip
+```
+Install conda environment
+```
+$ cd /home/unix/hdashnow/git/STRetch
+$ conda env update -f environment.yml
+```
+Install R packages
+```
+$ R
+> install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))
+> q()
+
+```
+Check locations of software
+```
+$ source activate STR # Activates the Conda environment
+$ which python
+$ which goleft
+```
+Set locations of software and reference files in pipeline_config.groovy
+```
+$ cd /home/unix/hdashnow/git/STRetch/pipelines
+$ cp pipeline_config_template.groovy pipeline_config.groovy
+```
+Edit pipeline_config.groovy as appropriate, for example I needed to set:
+```
+//STRetch installation location
+STRETCH='/home/unix/hdashnow/git/STRetch'
+// Software
+PYTHON='~/.conda/envs/STR/bin/python'
+GOLEFT='~/.conda/envs/STR/bin/goleft'
+```
+
 
 ## Running STRetch
 
@@ -92,6 +141,22 @@ parallel and their STR variation compared to find outliers. For example:
 
 Note: for exome samples, the exome target region must be set in the
 pipeline_config and is assumed to be the same for all samples.
+
+### Sample data
+
+To quickly try out STRetch, you can
+[download some simulated reads](https://figshare.com/s/cc7347f4637d9a7fe22d)
+from samples with STR expansions in the SCA8 STR locus.
+
+You will need to edit pipeline_config.groovy to use the provided target bed file:
+```
+EXOME_TARGET="SCA8_region.bed"
+```
+
+Sample command to run:
+```
+$ bpipe run path/to/STRetch/pipelines/STRetch_exome_pipeline.groovy *.fastq.gz
+```
 
 ## License
 
