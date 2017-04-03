@@ -194,6 +194,7 @@ locuscoverage_log_wide = acast(locuscov.totals, locus ~ sample, value.var = "loc
 z = apply(locuscoverage_log_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 #z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
+z.long$locus = row.names(z.long)
 locuscov.totals = merge(locuscov.totals, z.long)
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
