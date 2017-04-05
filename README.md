@@ -2,7 +2,11 @@ Note: this software is still very much in development, so use at own risk, and f
 
 # STRetch
 
-Method for detecting pathogenic STR expansions from next-gen sequencing data
+Method for detecting pathogenic STR expansions from next-gen sequencing data.
+
+STRetch requires paired end reads to work. It is primarily intended for use on
+whole genome sequencing data, but can also be run on exome or other targeted
+sequencing data, although size estimates should be interpreted with caution.
 
 ## Installing STRetch
 
