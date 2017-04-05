@@ -23,7 +23,12 @@ set_sample_info = {
 
     def info = get_info(input)
     branch.sample = info[0]
-    branch.lane = info[1]
+    if (info.length >= 2) {
+        branch.lane = info[1]
+    } else {
+        branch.lane = 'L001'
+    }
+
 }
 
 @preserve("*.bam")
@@ -104,5 +109,49 @@ doc "Calculate the median coverage over the target region"
 
     exec """
         $GOLEFT covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
+     """
+}
+
+///////////////////////////////////
+// Stages specific to WGS bam pipeline
+
+@filter('slop')
+str_targets = {
+        
+    doc "Create bed file of region likely to contain STR reads and their mates"
+
+    SLOP=800
+
+    //produce(STR_BED[0..-3] + 'slop.bed') {    
+        exec """
+            bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | bedtools merge > $output.bed
+        """
+    //}
+}
+
+extract_reads_region = {
+
+    doc "Extract reads from bam region + unaligned"
+
+    def fastaname = get_fname(REF)
+
+    produce(branch.sample + '_L001_R1.fastq.gz', branch.sample + '_L001_R2.fastq.gz') {
+        exec """
+
+            cat <( samtools view -hu -L $input.bed $input.bam ) 
+                <( samtools view -u -f 4 $input.bam ) | 
+            samtools collate -Ou -n 128 - $output.prefix | 
+            bedtools bamtofastq -i - -fq >(gzip -c > $output1.gz) -fq2 >(gzip -c > $output2.gz)
+        """
+    }
+}
+
+@transform('median_cov')
+median_cov_target = {
+
+doc "Calculate the median coverage over the target region"
+
+    exec """
+        $GOLEFT covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
      """
 }
