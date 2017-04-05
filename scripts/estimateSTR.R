@@ -15,7 +15,7 @@ option_list = list(
               type = "character",
               default = '.'),
   make_option("--out",
-              help = paste("Prefix for all output files",
+              help = paste("Prefix for all output files (suffix will be STRs.csv)",
                            "[default: %default]"),
               type = "character",
               default = ''),
@@ -55,6 +55,7 @@ locuscov.files = list.files(data.dir, 'locus_counts$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STR_counts$', full.names = TRUE)
 genomecov.files = list.files(data.dir, 'median_cov$', full.names = TRUE)
 #metadata = read.delim(paste(data.dir, "/ataxia_wgs_metadata.txt", sep = ""), stringsAsFactors=FALSE) #XXX make this an optional input?
+results.suffix = 'STRs.csv'
 
 # Only load packages once files have been read, to save time during program startup when debugging.
 suppressPackageStartupMessages({
@@ -199,6 +200,8 @@ locuscov.totals = merge(locuscov.totals, z.long)
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
 # Read in the raw data for this model from a file
+# Note: coverage_norm = (STR coverage/median coverage) * 100
+# allele2 is the length of the longer allele in bp inserted relative to reference
 STRcov.model = read.csv(STRcov.model.csv) 
 # Model is build from log2 data (to reduce heteroscedasticity), then converted back
 ATXN8.lm.data = data.frame(allele = log2(STRcov.model$allele2), coverage = log2(STRcov.model$coverage_norm))
@@ -227,11 +230,11 @@ write.data = unique(write.data) #XXX Remove duplicate rows - why do they occur? 
 samples = unique(write.data$sample)
 for (sample in samples) {
   write.csv(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
-            file = paste(c(base.filename, sample, '.locuscov.totals.csv'), collapse =''), 
+            file = paste(c(base.filename, sample, '.', results.suffix), collapse =''), 
             quote = FALSE, row.names=FALSE)
 }
 
 # Write all samples to a single file
-write.csv(x = write.data, file = paste(c(base.filename, 'locuscov.totals.csv'), collapse=''), quote = FALSE, row.names=FALSE)
+write.csv(x = write.data, file = paste(c(base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE)
 
 
