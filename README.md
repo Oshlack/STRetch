@@ -66,47 +66,6 @@ For example:
 This file is produced by extracting the appropriate columns from Tandem Repeats
 Finder output.
 
-### Sample Installation
-
-This is an example of installing STRetch in my home directory on the Broad
-cluster, where BWA and Samtools, Bpipe, Conda and R are already installed:
-
-```
-$ cd /home/unix/hdashnow/git
-$ git clone git@github.com:hdashnow/STRetch.git
-
-# Download reference data (approx. 12 Gig, so could take a while)
-$ cd /group/bioi1/harrietd/git/STRetch
-$ wget -O reference-data.zip https://ndownloader.figshare.com/articles/4658701?private_link=1a39be9282c90c4860cd
-$ unzip reference-data.zip
-
-# Install conda environment
-$ cd /home/unix/hdashnow/git/STRetch
-$ conda env update -f environment.yml
-# Install R packages
-$ R
-> install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))
-> q()
-
-# Check locations of software
-$ source activate STR # Activates the Conda environment
-$ which python
-$ which goleft
-
-# Set locations of software and reference files in pipeline_config.groovy
-$ cd /home/unix/hdashnow/git/STRetch/pipelines
-$ vim pipeline_config.groovy
-
-//STRetch installation location
-STRETCH='/home/unix/hdashnow/git/STRetch'
-// Software
-PYTHON='~/.conda/envs/STR/bin/python'
-GOLEFT='~/.conda/envs/STR/bin/goleft'
-
-$ cd /home/unix/hdashnow/git/STRetch
-$ ln -s /home/unix/hdashnow/storage/ref-data/decoySTR ./reference-data
-```
-
 ### Configuring STRetch
 
 Create a text file `STRetch/pipelines/pipeline_config.groovy` (note this file
