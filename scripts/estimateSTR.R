@@ -259,10 +259,17 @@ locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repea
 # Rename 'fit' column
 locuscov.totals$bpInsertion = locuscov.totals$fit
 
+# Split locus into 3 columns: chrom start end
+locus.cols = matrix(unlist(strsplit(locuscov.totals$locus, '-')), ncol = 3, byrow = T)
+colnames(locus.cols) = c('chrom', 'start', 'end')
+locuscov.totals = cbind(locuscov.totals, locus.cols)
+
 # Specify output data columns
-write.data = locuscov.totals[,c('sample', 'locus', 'repeatunit', 'reflen',
-                                'totalSTRcov', 'locuscoverage', 'total_assigned',
-                                'outlier', 'p_adj', 'bpInsertion', 'repeatUnits'
+write.data = locuscov.totals[,c('chrom', 'start', 'end',
+                                'sample', 'repeatunit', 'reflen',
+                                'locuscoverage', 'total_assigned',
+                                'outlier', 'p_adj', 
+                                'bpInsertion', 'repeatUnits'
                                 )]
 #sort by outlier score then estimated size (bpInsertion), both decending
 write.data = write.data[order(write.data$outlier, write.data$bpInsertion, decreasing=T),]
@@ -271,12 +278,12 @@ write.data = unique(write.data) #XXX Remove duplicate rows - why do they occur? 
 # Write individual files for each sample, remove rows where locuscoverage == 0
 samples = unique(write.data$sample)
 for (sample in samples) {
-  write.csv(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
+  write.table(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
             file = paste(c(base.filename, sample, '.', results.suffix), collapse =''), 
-            quote = FALSE, row.names=FALSE)
+            quote = FALSE, row.names=FALSE, sep = '\t')
 }
 
 # Write all samples to a single file
-write.csv(x = write.data, file = paste(c(base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE)
+write.table(x = write.data, file = paste(c(base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE, sep = '\t')
 
 
