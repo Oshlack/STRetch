@@ -66,13 +66,6 @@ suppressPackageStartupMessages({
   library('magrittr', quietly = TRUE)
 })
 
-# Calculate the mode
-# http://stackoverflow.com/questions/2547402/is-there-a-built-in-function-for-finding-the-mode
-mymode <- function(x) {
-  ux <- unique(x)
-  ux[which.max(tabulate(match(x, ux)))]
-}
-
 get.sample = function(filename) {
   dir.split = tail(strsplit(filename, '/', fixed = TRUE)[[1]], n = 1)
   strsplit(dir.split, '(\\.|_)', fixed = FALSE)[[1]][1]
@@ -140,13 +133,7 @@ multi.loci = row.names(crosstab)[apply(crosstab, 1, function(x) {any(x>1)})]
 stop('The locus count input data contains multiple rows with the same sample/locus combination. ',
   'This is usually caused by two loci at the same position in the STR annotation bed file. ', 
   'Check these loci:\n', paste(multi.loci, collapse = '\n'))
-# Correct reflen metadata, where it differs between samples at the same locus
-#XXX This really shouldn't be necessary, and indicates an error in the input data
-reflenmode = function(df) {
-  df$reflen = mymode(df$reflen)
-  return(df)
-}
-locuscov.data = ungroup(group_by(locuscov.data, locus) %>% do(reflenmode(.)))
+
 # Fill zeros in locuscov
 locuscov.data.wide = spread(locuscov.data, sample, locuscoverage, fill = 0)
 #locuscov.data.wide[is.na(locuscov.data.wide)] = 0
