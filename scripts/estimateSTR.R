@@ -134,6 +134,12 @@ STRcov.data$coverage = as.numeric(STRcov.data$coverage)
 # parse.locuscov
 locuscov.data = ldply(lapply(locuscov.files, parse.locuscov), data.frame)
 locuscov.data$locuscoverage = as.numeric(locuscov.data$locuscoverage)
+# Check for multiple rows with the same sample/locus combination and throw an error if found
+crosstab = table(locuscov.data$locus, locuscov.data$sample)
+multi.loci = row.names(crosstab)[apply(crosstab, 1, function(x) {any(x>1)})]
+stop('The locus count input data contains multiple rows with the same sample/locus combination. ',
+  'This is usually caused by two loci at the same position in the STR annotation bed file. ', 
+  'Check these loci:\n', paste(multi.loci, collapse = '\n'))
 # Correct reflen metadata, where it differs between samples at the same locus
 #XXX This really shouldn't be necessary, and indicates an error in the input data
 reflenmode = function(df) {
