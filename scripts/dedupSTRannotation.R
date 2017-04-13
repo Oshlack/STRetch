@@ -36,6 +36,10 @@ tryCatch({
 infile = arguments$i
 outfile = arguments$o
 
+if(any(is.null(infile), is.null(outfile))) {
+    stop(INVALID_MESSAGE)
+  }
+
 STRloci = read.table(infile, col.names = c('chrom', 'start', 'end', 'motif', 'reflen'), 
                      stringsAsFactors = F)
 # Sort by position, then by motif length (decending)
