@@ -3,7 +3,7 @@
 
 # Print traceback on failure (for debugging)
 #options(error=traceback)
-
+options(stringsAsFactors=FALSE)
 suppressPackageStartupMessages({
   library('optparse', quietly = TRUE)
 })
@@ -177,20 +177,19 @@ locuscov.totals = merge(locuscov.totals, all.differences)
 locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
 locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
 
-
 # For each locus, calculate if that sample is an outlier relative to the others
 
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
-total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
+#total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
 locuscoverage_log_wide = acast(locuscov.totals, locus ~ sample, value.var = "locuscoverage_log")
 ## Like a z score, except using the median and IQR instead of mean and sd.
 #XXX change this to total_assigned_wide
 z = apply(locuscoverage_log_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 #z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
-z.long$locus = row.names(z.long)
+#z.long$locus = row.names(z.long) #XXX in some situations locus names end up as row names, package version differences?
 locuscov.totals = merge(locuscov.totals, z.long)
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
