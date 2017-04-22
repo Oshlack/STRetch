@@ -79,7 +79,7 @@ def main():
 
     max_distance = args.dist
 
-    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen'])
+    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen', 'count'])
     outstream.write(out_header + '\n')
 
     #STR_bed = parse_bed(args.bed, position_base=0)
@@ -138,8 +138,8 @@ def main():
             df['motif'] = df['motif'].map(normalise_str) # Normalise the STR motif to enable comparisons
             # Remove STRs that don't match the motif
             df = df.loc[df['motif'] == normalise_str(motif), :]
-            df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count','reflen']]
-            summed = df.groupby(['STR_chr', 'STR_start', 'STR_stop', 'motif'], as_index=False).aggregate(np.sum)
+            df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen']]
+            summed = df.groupby(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen'], as_index=False).aggregate(np.sum)
             summed.to_csv(outstream, sep='\t', header=False, index=False)
 
     outstream.close()
