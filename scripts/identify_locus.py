@@ -42,6 +42,29 @@ def parse_args():
 def randomletters(length):
    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
 
+def detect_readlen(bamfile, sample = 100):
+    """Samples reads from a bam file to detect the read length. Assumes uniform 
+    read lengths and that any shorter reads are due to trimming or clipping.
+    Args:
+        bamfile (str): Location of bamfile (will be opened and closed, so don't 
+            use an existing open bamfile handle).
+        sample (int): Number of reads to sample.
+
+    Returns:
+        int: The maximum read length observed.
+    """
+    bam = pysam.Samfile(bamfile, 'rb')
+    maxlen = 0
+    count = 0
+    for read in bam.fetch():
+        count += 1
+        readlen = read.infer_query_length(always=False)
+        if readlen > maxlen:
+            maxlen = readlen
+        if count >= sample:
+            bam.close()
+            return maxlen
+
 def main():
     # Parse command line arguments
     args = parse_args()
@@ -56,12 +79,12 @@ def main():
 
     max_distance = args.dist
 
-    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen'])
+    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen', 'count'])
     outstream.write(out_header + '\n')
 
     #STR_bed = parse_bed(args.bed, position_base=0)
     STR_bed = bt.BedTool(bedfile)
-    readlen = 150
+    readlen = detect_readlen(bamfile)
 
     # Read bam
     bam = pysam.Samfile(bamfile, 'rb')
@@ -115,8 +138,8 @@ def main():
             df['motif'] = df['motif'].map(normalise_str) # Normalise the STR motif to enable comparisons
             # Remove STRs that don't match the motif
             df = df.loc[df['motif'] == normalise_str(motif), :]
-            df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count','reflen']]
-            summed = df.groupby(['STR_chr', 'STR_start', 'STR_stop', 'motif'], as_index=False).aggregate(np.sum)
+            df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen']]
+            summed = df.groupby(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen'], as_index=False).aggregate(np.sum)
             summed.to_csv(outstream, sep='\t', header=False, index=False)
 
     outstream.close()

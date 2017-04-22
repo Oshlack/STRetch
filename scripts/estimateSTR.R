@@ -3,7 +3,7 @@
 
 # Print traceback on failure (for debugging)
 #options(error=traceback)
-
+options(stringsAsFactors=FALSE)
 suppressPackageStartupMessages({
   library('optparse', quietly = TRUE)
 })
@@ -66,13 +66,6 @@ suppressPackageStartupMessages({
   library('magrittr', quietly = TRUE)
 })
 
-# Calculate the mode
-# http://stackoverflow.com/questions/2547402/is-there-a-built-in-function-for-finding-the-mode
-mymode <- function(x) {
-  ux <- unique(x)
-  ux[which.max(tabulate(match(x, ux)))]
-}
-
 get.sample = function(filename) {
   dir.split = tail(strsplit(filename, '/', fixed = TRUE)[[1]], n = 1)
   strsplit(dir.split, '(\\.|_)', fixed = FALSE)[[1]][1]
@@ -134,13 +127,15 @@ STRcov.data$coverage = as.numeric(STRcov.data$coverage)
 # parse.locuscov
 locuscov.data = ldply(lapply(locuscov.files, parse.locuscov), data.frame)
 locuscov.data$locuscoverage = as.numeric(locuscov.data$locuscoverage)
-# Correct reflen metadata, where it differs between samples at the same locus
-#XXX This really shouldn't be necessary, and indicates an error in the input data
-reflenmode = function(df) {
-  df$reflen = mymode(df$reflen)
-  return(df)
+# Check for multiple rows with the same sample/locus combination and throw an error if found
+crosstab = table(locuscov.data$locus, locuscov.data$sample)
+multi.loci = row.names(crosstab)[apply(crosstab, 1, function(x) {any(x>1)})]
+if(length(multi.loci) > 0) {
+    stop('The locus count input data contains multiple rows with the same sample/locus combination. ',
+      'This is usually caused by two loci at the same position in the STR annotation bed file. ', 
+      'Check these loci:\n', paste(multi.loci, collapse = '\n'))
 }
-locuscov.data = ungroup(group_by(locuscov.data, locus) %>% do(reflenmode(.)))
+
 # Fill zeros in locuscov
 locuscov.data.wide = spread(locuscov.data, sample, locuscoverage, fill = 0)
 #locuscov.data.wide[is.na(locuscov.data.wide)] = 0
@@ -182,20 +177,19 @@ locuscov.totals = merge(locuscov.totals, all.differences)
 locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
 locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
 
-
 # For each locus, calculate if that sample is an outlier relative to the others
 
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
-total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
+#total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
 locuscoverage_log_wide = acast(locuscov.totals, locus ~ sample, value.var = "locuscoverage_log")
 ## Like a z score, except using the median and IQR instead of mean and sd.
 #XXX change this to total_assigned_wide
 z = apply(locuscoverage_log_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 #z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
-z.long$locus = row.names(z.long)
+#z.long$locus = row.names(z.long) #XXX in some situations locus names end up as row names, package version differences?
 locuscov.totals = merge(locuscov.totals, z.long)
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
