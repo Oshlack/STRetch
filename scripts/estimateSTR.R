@@ -3,7 +3,7 @@
 
 # Print traceback on failure (for debugging)
 #options(error=traceback)
-
+options(stringsAsFactors=FALSE)
 suppressPackageStartupMessages({
   library('optparse', quietly = TRUE)
 })
@@ -15,7 +15,7 @@ option_list = list(
               type = "character",
               default = '.'),
   make_option("--out",
-              help = paste("Prefix for all output files",
+              help = paste("Prefix for all output files (suffix will be STRs.csv)",
                            "[default: %default]"),
               type = "character",
               default = ''),
@@ -55,6 +55,7 @@ locuscov.files = list.files(data.dir, 'locus_counts$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STR_counts$', full.names = TRUE)
 genomecov.files = list.files(data.dir, 'median_cov$', full.names = TRUE)
 #metadata = read.delim(paste(data.dir, "/ataxia_wgs_metadata.txt", sep = ""), stringsAsFactors=FALSE) #XXX make this an optional input?
+results.suffix = 'STRs.csv'
 
 # Only load packages once files have been read, to save time during program startup when debugging.
 suppressPackageStartupMessages({
@@ -64,13 +65,6 @@ suppressPackageStartupMessages({
   library('reshape2', quietly = TRUE)
   library('magrittr', quietly = TRUE)
 })
-
-# Calculate the mode
-# http://stackoverflow.com/questions/2547402/is-there-a-built-in-function-for-finding-the-mode
-mymode <- function(x) {
-  ux <- unique(x)
-  ux[which.max(tabulate(match(x, ux)))]
-}
 
 get.sample = function(filename) {
   dir.split = tail(strsplit(filename, '/', fixed = TRUE)[[1]], n = 1)
@@ -133,13 +127,15 @@ STRcov.data$coverage = as.numeric(STRcov.data$coverage)
 # parse.locuscov
 locuscov.data = ldply(lapply(locuscov.files, parse.locuscov), data.frame)
 locuscov.data$locuscoverage = as.numeric(locuscov.data$locuscoverage)
-# Correct reflen metadata, where it differs between samples at the same locus
-#XXX This really shouldn't be necessary, and indicates an error in the input data
-reflenmode = function(df) {
-  df$reflen = mymode(df$reflen)
-  return(df)
+# Check for multiple rows with the same sample/locus combination and throw an error if found
+crosstab = table(locuscov.data$locus, locuscov.data$sample)
+multi.loci = row.names(crosstab)[apply(crosstab, 1, function(x) {any(x>1)})]
+if(length(multi.loci) > 0) {
+    stop('The locus count input data contains multiple rows with the same sample/locus combination. ',
+      'This is usually caused by two loci at the same position in the STR annotation bed file. ', 
+      'Check these loci:\n', paste(multi.loci, collapse = '\n'))
 }
-locuscov.data = ungroup(group_by(locuscov.data, locus) %>% do(reflenmode(.)))
+
 # Fill zeros in locuscov
 locuscov.data.wide = spread(locuscov.data, sample, locuscoverage, fill = 0)
 #locuscov.data.wide[is.na(locuscov.data.wide)] = 0
@@ -181,24 +177,25 @@ locuscov.totals = merge(locuscov.totals, all.differences)
 locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
 locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
 
-
 # For each locus, calculate if that sample is an outlier relative to the others
 
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
-total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
+#total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
 locuscoverage_log_wide = acast(locuscov.totals, locus ~ sample, value.var = "locuscoverage_log")
 ## Like a z score, except using the median and IQR instead of mean and sd.
 #XXX change this to total_assigned_wide
 z = apply(locuscoverage_log_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 #z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
-z.long$locus = row.names(z.long)
+#z.long$locus = row.names(z.long) #XXX in some situations locus names end up as row names, package version differences?
 locuscov.totals = merge(locuscov.totals, z.long)
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
 # Read in the raw data for this model from a file
+# Note: coverage_norm = (STR coverage/median coverage) * 100
+# allele2 is the length of the longer allele in bp inserted relative to reference
 STRcov.model = read.csv(STRcov.model.csv) 
 # Model is build from log2 data (to reduce heteroscedasticity), then converted back
 ATXN8.lm.data = data.frame(allele = log2(STRcov.model$allele2), coverage = log2(STRcov.model$coverage_norm))
@@ -227,11 +224,11 @@ write.data = unique(write.data) #XXX Remove duplicate rows - why do they occur? 
 samples = unique(write.data$sample)
 for (sample in samples) {
   write.csv(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
-            file = paste(c(base.filename, sample, '.locuscov.totals.csv'), collapse =''), 
+            file = paste(c(base.filename, sample, '.', results.suffix), collapse =''), 
             quote = FALSE, row.names=FALSE)
 }
 
 # Write all samples to a single file
-write.csv(x = write.data, file = paste(c(base.filename, 'locuscov.totals.csv'), collapse=''), quote = FALSE, row.names=FALSE)
+write.csv(x = write.data, file = paste(c(base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE)
 
 
