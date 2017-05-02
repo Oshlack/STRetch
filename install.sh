@@ -10,7 +10,7 @@
 installdir=$PWD
 refdir=$PWD/reference-data
 toolspec=$PWD/pipelines/pipeline_config.groovy
-template=$PWD/pipelines/pipeline_config_template.groovy
+template=$PWD/pipelines/config-examples/pipeline_config_template.groovy
 
 mkdir -p tools/bin
 cd tools
