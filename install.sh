@@ -32,10 +32,9 @@ function conda_install {
 }
 
 function bwa_install {
-    wget --no-check-certificate https://sourceforge.net/projects/bio-bwa/files/bwa-0.7.15.tar.bz2
-    tar -jxvf bwa-0.7.15.tar.bz2
-    rm bwa-0.7.15.tar.bz2
-    make prefix=$PWD install -C bwa-0.7.15/
+    wget --no-check-certificate https://github.com/lh3/bwa/releases/download/v0.7.15/bwakit-0.7.15_x64-linux.tar.bz2
+    tar -jxvf bwakit-0.7.15_x64-linux.tar.bz2
+    rm bwakit-0.7.15_x64-linux.tar.bz2
 }
 
 function samtools_install {
