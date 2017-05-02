@@ -11,7 +11,7 @@ mkdir -p tools/bin
 cd tools
 
 #a list of which programs need to be installed
-commands="bpipe conda bwa samtools"
+commands="bpipe python goleft bedtools bwa samtools"
 
 #installation method
 function bpipe_install {
@@ -22,11 +22,11 @@ function bpipe_install {
 
 # Installs miniconda, Python 3 + required packages, BedTools and goleft
 # (and any other dependancies listed in environment.yml)
-function conda_install {
+function python_install {
     wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     bash miniconda.sh -b -p $PWD/miniconda
     rm miniconda.sh
-    $PWD/miniconda/bin/conda env create -f environment.yml
+    $PWD/miniconda/bin/conda env create -f ../environment.yml
     ln -s $PWD/miniconda/envs/STR/bin/* $PWD/bin/
 #    source activate STR
 }
@@ -35,6 +35,7 @@ function bwa_install {
     wget --no-check-certificate https://github.com/lh3/bwa/releases/download/v0.7.15/bwakit-0.7.15_x64-linux.tar.bz2
     tar -jxvf bwakit-0.7.15_x64-linux.tar.bz2
     rm bwakit-0.7.15_x64-linux.tar.bz2
+    ln -s $PWD/bwa.kit/* $PWD/bin/
 }
 
 function samtools_install {
@@ -82,3 +83,5 @@ for c in $commands ; do
 done
 echo "**********************************************************"
 echo $Final_message
+echo "Please make sure you have installed the required R packages:"
+echo "install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))"
