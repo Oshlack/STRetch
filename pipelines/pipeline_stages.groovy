@@ -1,6 +1,6 @@
 // Bpipe pipeline to detect pathogenic STR expansions from exome data
 
-// Variables are set in pipeline_config.groovy
+// Variables e.g. tools are set in pipeline_config.groovy
 
 ///////////////////
 // Helper functions
@@ -38,11 +38,11 @@ align_bwa = {
     def fastaname = get_fname(REF)
     from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
         exec """
-            bwa mem -M -t $threads
+            $bwa mem -M -t $threads
             -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
             $REF
             $inputs |
-            samtools view -bSuh - | samtools sort -o $output.bam -T $output.bam.prefix
+            $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
         """, "bwamem"
     }
 }
@@ -50,7 +50,7 @@ align_bwa = {
 @preserve("*.bai")
 index_bam = {
     transform("bam") to ("bam.bai") {
-        exec "samtools index $input.bam"
+        exec "$samtools index $input.bam"
     }
     forward input
 }
@@ -58,7 +58,7 @@ index_bam = {
 STR_coverage = {
     transform("bam") to ("STR_counts") {
         exec """
-            bedtools coverage -counts
+            $bedtools coverage -counts
             -sorted
             -g ${REF}.genome
             -a $DECOY_BED
@@ -70,7 +70,7 @@ STR_coverage = {
 STR_locus_counts = {
     transform("bam") to ("locus_counts") {
         exec """
-            $PYTHON $STRETCH/scripts/identify_locus.py
+            $python $STRETCH/scripts/identify_locus.py
             --bam $input.bam
             --bed $STR_BED
             --output $output.locus_counts
@@ -95,7 +95,7 @@ median_cov = {
 doc "Calculate the median coverage over the whole genome"
 
     exec """
-        $GOLEFT covmed $input.bam | cut -f 1 > $output.median_cov
+        $goleft covmed $input.bam | cut -f 1 > $output.median_cov
      """
 }
 
@@ -108,7 +108,7 @@ median_cov_region = {
 doc "Calculate the median coverage over the target region"
 
     exec """
-        $GOLEFT covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
+        $goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
      """
 }
 
@@ -124,7 +124,7 @@ str_targets = {
 
     //produce(STR_BED[0..-3] + 'slop.bed') {    
         exec """
-            bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | bedtools merge > $output.bed
+            $bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | $bedtools merge > $output.bed
         """
     //}
 }
@@ -138,10 +138,10 @@ extract_reads_region = {
     produce(branch.sample + '_L001_R1.fastq.gz', branch.sample + '_L001_R2.fastq.gz') {
         exec """
 
-            cat <( samtools view -hu -L $input.bed $input.bam ) 
-                <( samtools view -u -f 4 $input.bam ) | 
-            samtools collate -Ou -n 128 - $output.prefix | 
-            bedtools bamtofastq -i - -fq >(gzip -c > $output1.gz) -fq2 >(gzip -c > $output2.gz)
+            cat <( $samtools view -hu -L $input.bed $input.bam ) 
+                <( $samtools view -u -f 4 $input.bam ) | 
+            $samtools collate -Ou -n 128 - $output.prefix | 
+            $bedtools bamtofastq -i - -fq >(gzip -c > $output1.gz) -fq2 >(gzip -c > $output2.gz)
         """
     }
 }
@@ -152,6 +152,6 @@ median_cov_target = {
 doc "Calculate the median coverage over the target region"
 
     exec """
-        $GOLEFT covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
+        $goleft covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
      """
 }

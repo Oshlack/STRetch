@@ -9,7 +9,8 @@
 
 installdir=$PWD
 refdir=$PWD/reference-data
-toolspec=$PWD/pipelines/tools.groovy
+toolspec=$PWD/pipelines/pipeline_config.groovy
+template=$PWD/pipelines/pipeline_config_template.groovy
 
 mkdir -p tools/bin
 cd tools
@@ -55,7 +56,16 @@ function download_hg19 {
     rm $refdir/reference-data.zip
 }
 
-echo "// Path to tools used by the pipeline" > $toolspec
+#populate toolspec with template
+cat $template > $toolspec
+echo >> $toolspec
+
+#set STRetch base directory
+echo "// STRetch installation location" >> $toolspec
+echo "STRETCH=\"$installdir\"" >> $toolspec
+echo >> $toolspec
+
+echo "// Paths to tools used by the pipeline" >> $toolspec
 
 for c in $commands ; do
     c_path=`which $PWD/bin/$c 2>/dev/null`
@@ -77,7 +87,7 @@ if [ -z $R_path ] ; then
 fi
 echo "R=\"$R_path\"" >> $toolspec
 
-if [ ! -f $refdir/*.bed ] ; then
+if [ ! -f $refdir/*dedup.bed ] ; then
     mkdir -p $refdir
     echo "Downloading reference data"
     download_hg19
@@ -86,6 +96,14 @@ fi
 echo >> $toolspec
 echo "// Path to reference data" >> $toolspec
 echo "refdir=\"$refdir\"" >> $toolspec
+
+echo >> $toolspec
+echo "// Decoy reference assumed to have matching .genome file in the same directory" >> $toolspec
+echo "DECOY_REF=\"$refdir\"/hg19.STRdecoys.sorted.fasta" >> $toolspec
+echo "STR_BED=\"$refdir\"/hg19.simpleRepeat_period1-6_dedup.bed" >> $toolspec
+echo "DECOY_BED=\"$refdir\"/STRdecoys.sorted.bed" >> $toolspec
+echo >> $toolspec
+
 
 #loop through commands to check they are all installed
 echo "**********************************************************"
@@ -104,7 +122,7 @@ for c in $commands ; do
 done
 
 #check for reference data
-if [ ! -f $refdir/*.bed ] ; then
+if [ ! -f $refdir/*dedup.bed ] ; then
     echo -n "WARNING: reference files could not be found!!!! "
     echo "You will need to download them manually, then add the path to $toolspec"
 else
