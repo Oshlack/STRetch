@@ -89,7 +89,7 @@ def main():
     # Read bam
     bam = pysam.Samfile(bamfile, 'rb')
 
-    # Get relivent chromosomes
+    # Get relevant chromosomes
     required_chroms = []
     unpaired = 0
     total = 0
