@@ -10,4 +10,4 @@ dependencies:
 - bedtools
 - htslib
 - pybedtools
-- goleft
+- goleft=0.1.8
