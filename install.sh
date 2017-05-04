@@ -56,8 +56,19 @@ function download_hg19 {
     rm $refdir/reference-data.zip
 }
 
-#populate toolspec with template
-cat $template > $toolspec
+#populate toolspec
+echo "// Bpipe pipeline config file" > $toolspec
+echo "// Paths are relative to the directory the pipeline is running in, so absolute" >> $toolspec
+echo "// paths are recommended." >> $toolspec
+echo >> $toolspec
+echo "// Adjust parameters" >> $toolspec
+echo "PLATFORM='illumina'" >> $toolspec
+echo >> $toolspec
+echo "// Number of threads to use for BWA" >> $toolspec
+echo "threads=8" >> $toolspec
+echo >> $toolspec
+echo "// For exome pipeline only ***Edit before running the exome pipeline***" >> $toolspec
+echo "EXOME_TARGET=\"path/to/exome_target_regions.bed\"" >> $toolspec
 echo >> $toolspec
 
 #set STRetch base directory
@@ -77,16 +88,6 @@ for c in $commands ; do
     echo "$c=\"$c_path\"" >> $toolspec
 done
 
-#check that R is installed
-R_path=`which R 2>/dev/null`
-if [ -z $R_path ] ; then
-    echo "R not found!"
-    echo "Please go to http://www.r-project.org/ and follow the installation instructions."
-    echo "Please also install the required R packages:"
-    echo "install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))"
-fi
-echo "R=\"$R_path\"" >> $toolspec
-
 if [ ! -f $refdir/*dedup.bed ] ; then
     mkdir -p $refdir
     echo "Downloading reference data"
@@ -99,9 +100,9 @@ echo "refdir=\"$refdir\"" >> $toolspec
 
 echo >> $toolspec
 echo "// Decoy reference assumed to have matching .genome file in the same directory" >> $toolspec
-echo "DECOY_REF=\"$refdir\"/hg19.STRdecoys.sorted.fasta" >> $toolspec
-echo "STR_BED=\"$refdir\"/hg19.simpleRepeat_period1-6_dedup.bed" >> $toolspec
-echo "DECOY_BED=\"$refdir\"/STRdecoys.sorted.bed" >> $toolspec
+echo "REF=\"$refdir/hg19.STRdecoys.sorted.fasta\"" >> $toolspec
+echo "STR_BED=\"$refdir/hg19.simpleRepeat_period1-6_dedup.sorted.bed\"" >> $toolspec
+echo "DECOY_BED=\"$refdir/STRdecoys.sorted.bed\"" >> $toolspec
 echo >> $toolspec
 
 
@@ -114,12 +115,27 @@ for c in $commands ; do
     if [ -z $c_path ] ; then
 	echo -n "WARNING: $c could not be found!!!! "
 	echo "You will need to download and install $c manually, then add its path to $toolspec"
-	Final_message="WARNING: One or more command did not install successfully. See warning messages above. \
-                    You will need to correct this before running STRetch."
+	Final_message="WARNING: One or more command did not install successfully. See warning messages above. You will need to correct this before running STRetch."
     else
         echo "$c looks like it has been installed"
     fi
 done
+
+echo "**********************************************************"
+
+#check that R is installed
+R_path=`which R 2>/dev/null`
+if [ -z $R_path ] ; then
+    echo "R not found!"
+    echo "Please go to http://www.r-project.org/ and follow the installation instructions."
+    echo "Please also install the required R packages."
+else
+    echo "R seems to be available."
+    echo "Make sure you are using the correct version of R and have installed all required packages."
+fi
+echo "R=\"$R_path\"" >> $toolspec
+
+echo "**********************************************************"
 
 #check for reference data
 if [ ! -f $refdir/*dedup.bed ] ; then
