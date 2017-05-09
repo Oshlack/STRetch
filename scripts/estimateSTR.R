@@ -119,6 +119,12 @@ count.differences = function(locuscov.df, STRcov.df){
   return(STRcov.df.totals)
 }
 
+# Calculate a z score, except using Huber's M-estimator to estimate median and SD
+hubers.z = function(x, k=1.5) {
+  hubers.est = MASS::hubers(x, k)
+  (x - hubers.est$mu)/sqrt(hubers.est$s)
+}
+
 ## Parse coverage
 # parse.STRcov
 STRcov.data = ldply(lapply(STRcov.files, parse.STRcov), data.frame)
@@ -181,10 +187,16 @@ locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned +
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
 total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
 
-# Like a z score, except using the median and IQR instead of mean and sd.
-z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
+# Calculate a z score using Huber's M-estimator
+z = apply(total_assigned_wide, 1, hubers.z)
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
 locuscov.totals = merge(locuscov.totals, z.long)
+
+# Calculate p values based on z scores (one sided)
+pvals = apply(z, 1, function(x) {pnorm(x, lower.tail=FALSE)})
+adj_pvals = apply(pvals, 2, function(x) {p.adjust(x, method = "BH")})
+pvals.long = reshape2::melt(adj_pvals, varnames = c('locus', 'sample'), value.name = 'p_adj')
+locuscov.totals = merge(locuscov.totals, pvals.long)
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
 # Read in the raw data for this model from a file
@@ -207,8 +219,7 @@ locuscov.totals$bpInsertion = locuscov.totals$fit
 # Specify output data columns
 write.data = locuscov.totals[,c('sample', 'locus', 'repeatunit', 'reflen',
                                 'totalSTRcov', 'locuscoverage', 'total_assigned',
-                                'outlier', 'bpInsertion', 'repeatUnits'
-                                #,'repeatUnitsLwr', 'repeatUnitsUpr'
+                                'outlier', 'p_adj', 'bpInsertion', 'repeatUnits'
                                 )]
 #sort by outlier score then estimated size (bpInsertion), both decending
 write.data = write.data[order(write.data$outlier, write.data$bpInsertion, decreasing=T),]
