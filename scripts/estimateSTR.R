@@ -54,7 +54,6 @@ STRcov.model.csv = arguments$model
 locuscov.files = list.files(data.dir, 'locus_counts$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STR_counts$', full.names = TRUE)
 genomecov.files = list.files(data.dir, 'median_cov$', full.names = TRUE)
-#metadata = read.delim(paste(data.dir, "/ataxia_wgs_metadata.txt", sep = ""), stringsAsFactors=FALSE) #XXX make this an optional input?
 results.suffix = 'STRs.csv'
 
 # Only load packages once files have been read, to save time during program startup when debugging.
@@ -138,7 +137,6 @@ if(length(multi.loci) > 0) {
 
 # Fill zeros in locuscov
 locuscov.data.wide = spread(locuscov.data, sample, locuscoverage, fill = 0)
-#locuscov.data.wide[is.na(locuscov.data.wide)] = 0
 sample.cols = which(names(locuscov.data.wide) %in% unique(locuscov.data$sample))
 locuscov.data = gather(locuscov.data.wide, sample, locuscoverage, sample.cols)
 
@@ -148,8 +146,6 @@ genomecov.data$genomecov = as.numeric(genomecov.data$genomecov)
 # Check coverage is available for all samples
 stopifnot(unique(STRcov.data$sample) %in% genomecov.data$sample)
 
-#genomecov.data = group_by(genomecov.data, sample) %>% summarise(genomecov = sum(genomecov)) # future feature? only requred if multiple files per sample
-#genomecov.data = genomecov.data[genomecov.data$sample %in% male.affected, ]
 factor = 100
 
 STRcov.data$coverage_norm = factor * (STRcov.data$coverage + 1) / sapply(STRcov.data$sample, get.genomecov, genomecov.data)
@@ -174,7 +170,7 @@ locuscov.totals$locuscoverage_prop = locuscov.totals$locuscoverage/locuscov.tota
 locuscov.totals$locuscoverage_prop[is.nan(locuscov.totals$locuscoverage_prop)] = 0 # set to 0 when divide by 0 error
 # Assign that proportion of the total decoy counts for that repeat unit to each locus.
 locuscov.totals = merge(locuscov.totals, all.differences)
-#XXX Note: this is assigning a proportion of the difference counts, not of the original STR decoy counts.
+# Note: this is assigning a proportion of the difference counts, not of the original STR decoy counts.
 locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
 locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
 
@@ -188,7 +184,6 @@ total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_
 # Like a z score, except using the median and IQR instead of mean and sd.
 z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
-#z.long$locus = row.names(z.long) #XXX in some situations locus names end up as row names, package version differences?
 locuscov.totals = merge(locuscov.totals, z.long)
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
