@@ -171,6 +171,7 @@ all.differences$difference_log = suppressWarnings(
 STRcovtotals = group_by(locuscov.data, sample, repeatunit) %>% dplyr::summarise(totalSTRcov = sum(locuscoverage))
 locuscov.totals = merge(locuscov.data, STRcovtotals)
 locuscov.totals$locuscoverage_prop = locuscov.totals$locuscoverage/locuscov.totals$totalSTRcov
+locuscov.totals$locuscoverage_prop[is.nan(locuscov.totals$locuscoverage_prop)] = 0 # set to 0 when divide by 0 error
 # Assign that proportion of the total decoy counts for that repeat unit to each locus.
 locuscov.totals = merge(locuscov.totals, all.differences)
 #XXX Note: this is assigning a proportion of the difference counts, not of the original STR decoy counts.
@@ -182,12 +183,10 @@ locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
-#total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
-locuscoverage_log_wide = acast(locuscov.totals, locus ~ sample, value.var = "locuscoverage_log")
-## Like a z score, except using the median and IQR instead of mean and sd.
-#XXX change this to total_assigned_wide
-z = apply(locuscoverage_log_wide, 1, function(x) {(x - median(x)) / IQR(x)})
-#z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
+total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
+
+# Like a z score, except using the median and IQR instead of mean and sd.
+z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
 #z.long$locus = row.names(z.long) #XXX in some situations locus names end up as row names, package version differences?
 locuscov.totals = merge(locuscov.totals, z.long)
