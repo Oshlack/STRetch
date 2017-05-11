@@ -259,8 +259,9 @@ locuscov.totals = cbind(locuscov.totals, predict)
 
 # Get the estimated size in terms of repeat units (total, not relative to ref)
 locuscov.totals$repeatUnits = locuscov.totals$fit/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
-locuscov.totals$repeatUnitsLwr = locuscov.totals$lwr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
-locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
+#XXX These values not currently reported, so no point calculating them
+#locuscov.totals$repeatUnitsLwr = locuscov.totals$lwr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
+#locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
 # Rename some columns
 names(locuscov.totals)[names(locuscov.totals) == 'fit'] <- 'bpInsertion'
 names(locuscov.totals)[names(locuscov.totals) == 'coverage'] <- 'decoy_coverage'
