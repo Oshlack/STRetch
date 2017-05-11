@@ -79,7 +79,7 @@ STR_locus_counts = {
 }
 
 estimate_size = {
-    produce("STRs.csv") {
+    produce("STRs.tsv") {
         exec """
             Rscript $STRETCH/scripts/estimateSTR.R --model $STRETCH/scripts/STRcov.model.csv
         """
