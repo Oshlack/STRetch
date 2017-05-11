@@ -191,16 +191,21 @@ all.differences$difference_log = suppressWarnings(
 # Group by sample, then calculate proportion reads to assign to each locus
 STRcovtotals = group_by(locuscov.data, sample, repeatunit) %>% dplyr::summarise(totalSTRcov = sum(locuscoverage))
 locuscov.totals = merge(locuscov.data, STRcovtotals)
-locuscov.totals$locuscoverage_prop = locuscov.totals$locuscoverage/locuscov.totals$totalSTRcov
-locuscov.totals$locuscoverage_prop[is.nan(locuscov.totals$locuscoverage_prop)] = 0 # set to 0 when divide by 0 error
-# Assign that proportion of the total decoy counts for that repeat unit to each locus.
-locuscov.totals = merge(locuscov.totals, all.differences)
-# Note: this is assigning a proportion of the difference counts, not of the original STR decoy counts.
-locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
-locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
+# locuscov.totals$locuscoverage_prop = locuscov.totals$locuscoverage/locuscov.totals$totalSTRcov
+# locuscov.totals$locuscoverage_prop[is.nan(locuscov.totals$locuscoverage_prop)] = 0 # set to 0 when divide by 0 error
+# # Assign that proportion of the total decoy counts for that repeat unit to each locus.
+# locuscov.totals = merge(locuscov.totals, all.differences)
+# # Note: this is assigning a proportion of the difference counts, not of the original STR decoy counts.
+# locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
+# locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
+
+#XXX The above performs assignment of remaining reads mapping to STR decoys but not individual loci
+# There are still some issues with false positives from this assignment, so commenting out for now
+# This will result in underestimates of alleles, but reduces false positives
+locuscov.totals$total_assigned = locuscov.totals$locuscoverage #XXX remove this line if reinstating code above
+
 
 # For each locus, calculate if that sample is an outlier relative to the others
-
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
