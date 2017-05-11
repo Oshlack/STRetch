@@ -29,5 +29,9 @@ refdir="$STRetch/reference-data"
 REF="$refdir/hg19.STRdecoys.sorted.fasta"
 STR_BED="$refdir/hg19.simpleRepeat_period1-6_dedup.sorted.bed"
 DECOY_BED="$refdir/STRdecoys.sorted.bed"
+// By default, uses other samples in the same batch as a control
+CONTROL=""
+// Uncomment the line below to use a set of WGS samples as controls, or specify your own
+//CONTROL="/group/bioi1/harrietd/git/STRetch-test/reference-data/PCRfreeWGS.controls.tsv"
 
 R="/usr/local/installed/R/3.3.2/lib64/R/bin/R"
