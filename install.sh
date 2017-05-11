@@ -93,7 +93,7 @@ if [ ! -f $refdir/*dedup.bed ] ; then
     echo "Downloading reference data"
     download_hg19
 fi
- 
+
 echo >> $toolspec
 echo "// Path to reference data" >> $toolspec
 echo "refdir=\"$refdir\"" >> $toolspec
@@ -103,6 +103,10 @@ echo "// Decoy reference assumed to have matching .genome file in the same direc
 echo "REF=\"$refdir/hg19.STRdecoys.sorted.fasta\"" >> $toolspec
 echo "STR_BED=\"$refdir/hg19.simpleRepeat_period1-6_dedup.sorted.bed\"" >> $toolspec
 echo "DECOY_BED=\"$refdir/STRdecoys.sorted.bed\"" >> $toolspec
+echo "// By default, uses other samples in the same batch as a control" >> $toolspec
+echo "CONTROL=\"\"" >> $toolspec
+echo "// Uncomment the line below to use a set of WGS samples as controls, or specify your own" >> $toolspec
+echo "//CONTROL=\"$refdir/PCRfreeWGS.controls.tsv\"" >> $toolspec
 echo >> $toolspec
 
 
