@@ -261,8 +261,9 @@ locuscov.totals = cbind(locuscov.totals, predict)
 locuscov.totals$repeatUnits = locuscov.totals$fit/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
 locuscov.totals$repeatUnitsLwr = locuscov.totals$lwr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
 locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
-# Rename 'fit' column
-locuscov.totals$bpInsertion = locuscov.totals$fit
+# Rename some columns
+names(locuscov.totals)[names(locuscov.totals) == 'fit'] <- 'bpInsertion'
+names(locuscov.totals)[names(locuscov.totals) == 'coverage'] <- 'decoy_coverage'
 
 # Split locus into 3 columns: chrom start end
 locus.cols = matrix(unlist(strsplit(locuscov.totals$locus, '-')), ncol = 3, byrow = T)
@@ -272,7 +273,7 @@ locuscov.totals = cbind(locuscov.totals, locus.cols)
 # Specify output data columns
 write.data = locuscov.totals[,c('chrom', 'start', 'end',
                                 'sample', 'repeatunit', 'reflen',
-                                'locuscoverage', 'total_assigned',
+                                'locuscoverage', 'decoy_coverage', 'total_assigned',
                                 'outlier', 'p_adj', 
                                 'bpInsertion', 'repeatUnits'
                                 )]
