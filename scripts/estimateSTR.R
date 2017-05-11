@@ -15,7 +15,7 @@ option_list = list(
               type = "character",
               default = '.'),
   make_option("--out",
-              help = paste("Prefix for all output files (suffix will be STRs.csv)",
+              help = paste("Prefix for all output files (suffix will be STRs.tsv)",
                            "[default: %default]"),
               type = "character",
               default = ''),
@@ -32,7 +32,7 @@ option_list = list(
               type = "character",
               default = ''),
   make_option("--emit",
-              help = "Output file for median and standard deviation estimates at each locus.",
+              help = "Output file for median and standard deviation estimates at each locus (tsv).",
               type = "character",
               default = '')
 )
@@ -67,7 +67,7 @@ control.file = arguments$control
 locuscov.files = list.files(data.dir, 'locus_counts$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STR_counts$', full.names = TRUE)
 genomecov.files = list.files(data.dir, 'median_cov$', full.names = TRUE)
-results.suffix = 'STRs.csv'
+results.suffix = 'STRs.tsv'
 
 # Only load packages once files have been read, to save time during program startup when debugging.
 suppressPackageStartupMessages({
