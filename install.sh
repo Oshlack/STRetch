@@ -88,7 +88,7 @@ for c in $commands ; do
     echo "$c=\"$c_path\"" >> $toolspec
 done
 
-if [ ! -f $refdir/*dedup.bed ] ; then
+if [ ! -f $refdir/*dedup.sorted.bed ] ; then
     mkdir -p $refdir
     echo "Downloading reference data"
     download_hg19
@@ -142,7 +142,7 @@ echo "R=\"$R_path\"" >> $toolspec
 echo "**********************************************************"
 
 #check for reference data
-if [ ! -f $refdir/*dedup.bed ] ; then
+if [ ! -f $refdir/*dedup.sorted.bed ] ; then
     echo -n "WARNING: reference files could not be found!!!! "
     echo "You will need to download them manually, then add the path to $toolspec"
 else
