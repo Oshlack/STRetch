@@ -204,7 +204,6 @@ locuscov.totals = merge(locuscov.data, STRcovtotals)
 # This will result in underestimates of alleles, but reduces false positives
 locuscov.totals$total_assigned = locuscov.totals$locuscoverage #XXX remove this line if reinstating code above
 
-
 # For each locus, calculate if that sample is an outlier relative to the others
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
@@ -212,7 +211,7 @@ locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
 total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
 
 if (control.file != '') {
-  # Calculate z scores using median and SD estimates per locus from a provided control set
+# Calculate z scores using median and SD estimates per locus from a provided control set
   control.estimates = read.table(control.file)
   # Reorder the control estimates by the loci in the sample
   control.estimates.sorted = control.estimates[match(rownames(total_assigned_wide), rownames(control.estimates)),]
@@ -220,18 +219,27 @@ if (control.file != '') {
   control.estimates.sorted[rowSums(is.na(control.estimates.sorted)) == ncol(control.estimates.sorted),] = control.estimates["null_locus_counts",]
   # Calculate z scores
   z = t(apply(total_assigned_wide, 2, function(x){(x - control.estimates.sorted$median)/control.estimates.sorted$SD}))
+  if (nrow(total_assigned_wide) == 1) { # Occurs when there is only one locus
+    rownames(z) = rownames(total_assigned_wide)
+    z = t(z)
+  }
   #z.long = melt(z, varnames = c('locus', 'sample'), value.name = 'outlier')
 } else {
   # Calculate a z score using Huber's M-estimator to calculate median and SD across all samples
   z = apply(total_assigned_wide, 1, hubers.z)
-  
 }
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
 locuscov.totals = merge(locuscov.totals, z.long)
 
 # Calculate p values based on z scores (one sided)
 pvals = apply(z, 1, function(x) {pnorm(x, lower.tail=FALSE)})
-adj_pvals = apply(pvals, 2, function(x) {p.adjust(x, method = "BH")})
+if (ncol(z) == 1) { # Occurs when there is only one locus
+    adj_pvals = data.frame(pvals)
+    names(adj_pvals) = colnames(z)
+    adj_pvals = t(adj_pvals)
+} else {
+    adj_pvals = apply(pvals, 2, function(x) {p.adjust(x, method = "BH")})
+}
 pvals.long = reshape2::melt(adj_pvals, varnames = c('locus', 'sample'), value.name = 'p_adj')
 locuscov.totals = merge(locuscov.totals, pvals.long)
 
@@ -264,7 +272,7 @@ locuscov.totals$repeatUnits = locuscov.totals$fit/nchar(locuscov.totals$repeatun
 #locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
 # Rename some columns
 names(locuscov.totals)[names(locuscov.totals) == 'fit'] <- 'bpInsertion'
-names(locuscov.totals)[names(locuscov.totals) == 'coverage'] <- 'decoy_coverage'
+#names(locuscov.totals)[names(locuscov.totals) == 'coverage'] <- 'decoy_coverage'
 
 # Split locus into 3 columns: chrom start end
 locus.cols = matrix(unlist(strsplit(locuscov.totals$locus, '-')), ncol = 3, byrow = T)
@@ -274,7 +282,7 @@ locuscov.totals = cbind(locuscov.totals, locus.cols)
 # Specify output data columns
 write.data = locuscov.totals[,c('chrom', 'start', 'end',
                                 'sample', 'repeatunit', 'reflen',
-                                'locuscoverage', 'decoy_coverage', 'total_assigned',
+                                'locuscoverage', #'total_assigned', 'decoy_coverage',
                                 'outlier', 'p_adj', 
                                 'bpInsertion', 'repeatUnits'
                                 )]
