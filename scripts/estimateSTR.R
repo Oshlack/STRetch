@@ -15,7 +15,7 @@ option_list = list(
               type = "character",
               default = '.'),
   make_option("--out",
-              help = paste("Prefix for all output files (suffix will be STRs.csv)",
+              help = paste("Prefix for all output files (suffix will be STRs.tsv)",
                            "[default: %default]"),
               type = "character",
               default = ''),
@@ -23,7 +23,18 @@ option_list = list(
               help = paste("Data to produce linear regression model (provided with STRetch)",
                            "[default: %default]"),
               type = "character",
-              default = 'STRcov.model.csv')
+              default = 'STRcov.model.csv'),
+  make_option("--control",
+              help = paste("Input file for median and standard deviation estimates at each ",
+                           "locus from a set of control samples. This file can be produced by ",
+                           "this script using the emit option. If this option is not set, all ", 
+                           "samples in the current batch will be used as controls by default."),
+              type = "character",
+              default = ''),
+  make_option("--emit",
+              help = "Output file for median and standard deviation estimates at each locus (tsv).",
+              type = "character",
+              default = '')
 )
 
 parser = OptionParser(
@@ -49,13 +60,14 @@ tryCatch({
 base.filename = arguments$out
 data.dir = arguments$dir
 STRcov.model.csv = arguments$model
+emit.file = arguments$emit
+control.file = arguments$control
 
 #XXX Change this so input files are provided as arguments, and check the number of files
 locuscov.files = list.files(data.dir, 'locus_counts$', full.names = TRUE)
 STRcov.files = list.files(data.dir, 'STR_counts$', full.names = TRUE)
 genomecov.files = list.files(data.dir, 'median_cov$', full.names = TRUE)
-#metadata = read.delim(paste(data.dir, "/ataxia_wgs_metadata.txt", sep = ""), stringsAsFactors=FALSE) #XXX make this an optional input?
-results.suffix = 'STRs.csv'
+results.suffix = 'STRs.tsv'
 
 # Only load packages once files have been read, to save time during program startup when debugging.
 suppressPackageStartupMessages({
@@ -120,6 +132,18 @@ count.differences = function(locuscov.df, STRcov.df){
   return(STRcov.df.totals)
 }
 
+# Calculate a z score, except using Huber's M-estimator to estimate median and SD
+hubers.z = function(x, k=1.5) {
+  hubers.est = MASS::hubers(x, k)
+  (x - hubers.est$mu)/sqrt(hubers.est$s)
+}
+
+# Emit Huber's M-estimator median and SD estimates for use as a control set
+hubers.est = function(x, k=1.5) {
+  hubers.est = MASS::hubers(x, k)
+  return(c(median = hubers.est$mu, SD = sqrt(hubers.est$s)))
+}
+
 ## Parse coverage
 # parse.STRcov
 STRcov.data = ldply(lapply(STRcov.files, parse.STRcov), data.frame)
@@ -138,7 +162,6 @@ if(length(multi.loci) > 0) {
 
 # Fill zeros in locuscov
 locuscov.data.wide = spread(locuscov.data, sample, locuscoverage, fill = 0)
-#locuscov.data.wide[is.na(locuscov.data.wide)] = 0
 sample.cols = which(names(locuscov.data.wide) %in% unique(locuscov.data$sample))
 locuscov.data = gather(locuscov.data.wide, sample, locuscoverage, sample.cols)
 
@@ -148,8 +171,6 @@ genomecov.data$genomecov = as.numeric(genomecov.data$genomecov)
 # Check coverage is available for all samples
 stopifnot(unique(STRcov.data$sample) %in% genomecov.data$sample)
 
-#genomecov.data = group_by(genomecov.data, sample) %>% summarise(genomecov = sum(genomecov)) # future feature? only requred if multiple files per sample
-#genomecov.data = genomecov.data[genomecov.data$sample %in% male.affected, ]
 factor = 100
 
 STRcov.data$coverage_norm = factor * (STRcov.data$coverage + 1) / sapply(STRcov.data$sample, get.genomecov, genomecov.data)
@@ -170,27 +191,68 @@ all.differences$difference_log = suppressWarnings(
 # Group by sample, then calculate proportion reads to assign to each locus
 STRcovtotals = group_by(locuscov.data, sample, repeatunit) %>% dplyr::summarise(totalSTRcov = sum(locuscoverage))
 locuscov.totals = merge(locuscov.data, STRcovtotals)
-locuscov.totals$locuscoverage_prop = locuscov.totals$locuscoverage/locuscov.totals$totalSTRcov
-# Assign that proportion of the total decoy counts for that repeat unit to each locus.
-locuscov.totals = merge(locuscov.totals, all.differences)
-#XXX Note: this is assigning a proportion of the difference counts, not of the original STR decoy counts.
-locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
-locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
+# locuscov.totals$locuscoverage_prop = locuscov.totals$locuscoverage/locuscov.totals$totalSTRcov
+# locuscov.totals$locuscoverage_prop[is.nan(locuscov.totals$locuscoverage_prop)] = 0 # set to 0 when divide by 0 error
+# # Assign that proportion of the total decoy counts for that repeat unit to each locus.
+# locuscov.totals = merge(locuscov.totals, all.differences)
+# # Note: this is assigning a proportion of the difference counts, not of the original STR decoy counts.
+# locuscov.totals$diff_assigned = locuscov.totals$locuscoverage_prop * locuscov.totals$difference
+# locuscov.totals$total_assigned = locuscov.totals$diff_assigned + locuscov.totals$locuscoverage
+
+#XXX The above performs assignment of remaining reads mapping to STR decoys but not individual loci
+# There are still some issues with false positives from this assignment, so commenting out for now
+# This will result in underestimates of alleles, but reduces false positives
+locuscov.totals$total_assigned = locuscov.totals$locuscoverage #XXX remove this line if reinstating code above
 
 # For each locus, calculate if that sample is an outlier relative to the others
-
 # Normalise by median coverage
 locuscov.totals$total_assigned_norm = factor * (locuscov.totals$total_assigned + 1) / sapply(locuscov.totals$sample, get.genomecov, genomecov.data)
 locuscov.totals$total_assigned_log = log2(locuscov.totals$total_assigned_norm)
-#total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
-locuscoverage_log_wide = acast(locuscov.totals, locus ~ sample, value.var = "locuscoverage_log")
-## Like a z score, except using the median and IQR instead of mean and sd.
-#XXX change this to total_assigned_wide
-z = apply(locuscoverage_log_wide, 1, function(x) {(x - median(x)) / IQR(x)})
-#z = apply(total_assigned_wide, 1, function(x) {(x - median(x)) / IQR(x)})
+total_assigned_wide = acast(locuscov.totals, locus ~ sample, value.var = "total_assigned_log")
+
+if (control.file != '') {
+# Calculate z scores using median and SD estimates per locus from a provided control set
+  control.estimates = read.table(control.file)
+  # Reorder the control estimates by the loci in the sample
+  control.estimates.sorted = control.estimates[match(rownames(total_assigned_wide), rownames(control.estimates)),]
+  # Replace all loci not in the control with the default values
+  control.estimates.sorted[rowSums(is.na(control.estimates.sorted)) == ncol(control.estimates.sorted),] = control.estimates["null_locus_counts",]
+  # Calculate z scores
+  z = t(apply(total_assigned_wide, 2, function(x){(x - control.estimates.sorted$median)/control.estimates.sorted$SD}))
+  if (nrow(total_assigned_wide) == 1) { # Occurs when there is only one locus
+    rownames(z) = rownames(total_assigned_wide)
+    z = t(z)
+  }
+  #z.long = melt(z, varnames = c('locus', 'sample'), value.name = 'outlier')
+} else {
+  # Calculate a z score using Huber's M-estimator to calculate median and SD across all samples
+  z = apply(total_assigned_wide, 1, hubers.z)
+}
 z.long = melt(z, varnames = c('sample', 'locus'), value.name = 'outlier')
-#z.long$locus = row.names(z.long) #XXX in some situations locus names end up as row names, package version differences?
 locuscov.totals = merge(locuscov.totals, z.long)
+
+# Calculate p values based on z scores (one sided)
+pvals = apply(z, 1, function(x) {pnorm(x, lower.tail=FALSE)})
+if (ncol(z) == 1) { # Occurs when there is only one locus
+    adj_pvals = data.frame(pvals)
+    names(adj_pvals) = colnames(z)
+    adj_pvals = t(adj_pvals)
+} else {
+    adj_pvals = apply(pvals, 2, function(x) {p.adjust(x, method = "BH")})
+}
+pvals.long = reshape2::melt(adj_pvals, varnames = c('locus', 'sample'), value.name = 'p_adj')
+locuscov.totals = merge(locuscov.totals, pvals.long)
+
+# Save median and SD of all loci to file if requested (for use as a control set for future data sets)
+if (emit.file != '') {
+  # Add a null locus that has 0 reads for all individuals (so just uses coverage)
+  null_locus_counts = log2(factor * (0 + 1)/genomecov.data$genomecov)
+  
+  hubers.estimates = data.frame(t(apply(rbind(null_locus_counts, total_assigned_wide), 1, hubers.est)))
+  hubers.estimates$n = ncol(total_assigned_wide)
+  
+  write.table(hubers.estimates, file=emit.file, sep = "\t", quote = FALSE)
+}
 
 # Predict size (in bp) using the ATXN8 linear model (produced from data in decoySTR_cov_sim_ATXN8_AGC.R) 
 # Read in the raw data for this model from a file
@@ -205,16 +267,24 @@ locuscov.totals = cbind(locuscov.totals, predict)
 
 # Get the estimated size in terms of repeat units (total, not relative to ref)
 locuscov.totals$repeatUnits = locuscov.totals$fit/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
-locuscov.totals$repeatUnitsLwr = locuscov.totals$lwr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
-locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
-# Rename 'fit' column
-locuscov.totals$bpInsertion = locuscov.totals$fit
+#XXX These values not currently reported, so no point calculating them
+#locuscov.totals$repeatUnitsLwr = locuscov.totals$lwr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
+#locuscov.totals$repeatUnitsUpr = locuscov.totals$upr/nchar(locuscov.totals$repeatunit) + locuscov.totals$reflen
+# Rename some columns
+names(locuscov.totals)[names(locuscov.totals) == 'fit'] <- 'bpInsertion'
+#names(locuscov.totals)[names(locuscov.totals) == 'coverage'] <- 'decoy_coverage'
+
+# Split locus into 3 columns: chrom start end
+locus.cols = matrix(unlist(strsplit(locuscov.totals$locus, '-')), ncol = 3, byrow = T)
+colnames(locus.cols) = c('chrom', 'start', 'end')
+locuscov.totals = cbind(locuscov.totals, locus.cols)
 
 # Specify output data columns
-write.data = locuscov.totals[,c('sample', 'locus', 'repeatunit', 'reflen',
-                                'totalSTRcov', 'locuscoverage', 'total_assigned',
-                                'outlier', 'bpInsertion', 'repeatUnits'
-                                #,'repeatUnitsLwr', 'repeatUnitsUpr'
+write.data = locuscov.totals[,c('chrom', 'start', 'end',
+                                'sample', 'repeatunit', 'reflen',
+                                'locuscoverage', #'total_assigned', 'decoy_coverage',
+                                'outlier', 'p_adj', 
+                                'bpInsertion', 'repeatUnits'
                                 )]
 #sort by outlier score then estimated size (bpInsertion), both decending
 write.data = write.data[order(write.data$outlier, write.data$bpInsertion, decreasing=T),]
@@ -223,12 +293,12 @@ write.data = unique(write.data) #XXX Remove duplicate rows - why do they occur? 
 # Write individual files for each sample, remove rows where locuscoverage == 0
 samples = unique(write.data$sample)
 for (sample in samples) {
-  write.csv(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
+  write.table(write.data[write.data$sample == sample & write.data$locuscoverage != 0,], 
             file = paste(c(base.filename, sample, '.', results.suffix), collapse =''), 
-            quote = FALSE, row.names=FALSE)
+            quote = FALSE, row.names=FALSE, sep = '\t')
 }
 
 # Write all samples to a single file
-write.csv(x = write.data, file = paste(c(base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE)
+write.table(x = write.data, file = paste(c(base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE, sep = '\t')
 
 
