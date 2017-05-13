@@ -37,7 +37,7 @@ function python_install {
 }
 
 function bwa_install {
-    wget --no-check-certificate https://github.com/lh3/bwa/releases/download/v0.7.15/bwakit-0.7.15_x64-linux.tar.bz2
+    wget -O bwakit-0.7.15_x64-linux.tar.bz2 --no-check-certificate https://github.com/lh3/bwa/releases/download/v0.7.15/bwakit-0.7.15_x64-linux.tar.bz2
     tar -jxvf bwakit-0.7.15_x64-linux.tar.bz2
     rm bwakit-0.7.15_x64-linux.tar.bz2
     ln -s $PWD/bwa.kit/* $PWD/bin/
