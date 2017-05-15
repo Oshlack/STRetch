@@ -70,7 +70,7 @@ STR_coverage = {
 STR_locus_counts = {
     transform("bam") to ("locus_counts") {
         exec """
-            $python $STRETCH/scripts/identify_locus.py
+            source $STRETCH/tools/bin/activate STR; python $STRETCH/scripts/identify_locus.py
             --bam $input.bam
             --bed $STR_BED
             --output $output.locus_counts
