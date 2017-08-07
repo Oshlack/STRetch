@@ -54,6 +54,8 @@ align_bwa = {
     def fastaname = get_fname(REF)
     from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
         exec """
+            set -o pipefail
+
             $bwa mem -M -t $threads
             -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
             $REF
