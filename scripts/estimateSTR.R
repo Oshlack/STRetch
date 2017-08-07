@@ -299,6 +299,6 @@ for (sample in samples) {
 }
 
 # Write all samples to a single file
-write.table(x = write.data, file = paste(c(base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE, sep = '\t')
+write.table(x = write.data, file = paste(c(data.dir, '/', base.filename, results.suffix), collapse=''), quote = FALSE, row.names=FALSE, sep = '\t')
 
 
