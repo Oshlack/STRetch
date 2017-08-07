@@ -21,6 +21,22 @@ set_sample_info = {
 
     doc "Validate and set information about the sample to be processed"
 
+    if(!file(REF).exists())
+        fail """
+             The configured decoy reference file: $REF could not be found. 
+
+             Please check pipelines/pipeline_config.groovy to make sure this is set correctly
+        """
+
+    [bwa,samtools,bedtools,goleft,python].each { tool ->
+        if(!file(tool).exists()) 
+            fail """
+                 The location of tool $tool does not appear to exist.
+
+                 Please check pipelines/pipeline_config.groovy to make sure this is set correctly
+            """
+    }
+
     def info = get_info(input)
     branch.sample = info[0]
     if (info.length >= 2) {
@@ -38,6 +54,8 @@ align_bwa = {
     def fastaname = get_fname(REF)
     from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
         exec """
+            set -o pipefail
+
             $bwa mem -M -t $threads
             -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
             $REF
