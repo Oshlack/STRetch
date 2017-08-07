@@ -21,6 +21,22 @@ set_sample_info = {
 
     doc "Validate and set information about the sample to be processed"
 
+    if(!file(REF).exists())
+        fail """
+             The configured decoy reference file: $REF could not be found. 
+
+             Please check pipelines/pipeline_config.groovy to make sure this is set correctly
+        """
+
+    [bwa,samtools,bedtools,goleft,python].each { tool ->
+        if(!file(tool).exists()) 
+            fail """
+                 The location of tool $tool does not appear to exist.
+
+                 Please check pipelines/pipeline_config.groovy to make sure this is set correctly
+            """
+    }
+
     def info = get_info(input)
     branch.sample = info[0]
     if (info.length >= 2) {
