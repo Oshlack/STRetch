@@ -1,0 +1,28 @@
+language: r
+# r:
+#   - oldrel
+#   - release
+#   - devel
+cache: packages
+install:
+  - git clone git@github.com:Oshlack/STRetch.git STRetch
+  - cd STRetch
+  - ./install.sh
+# R
+# > install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))
+# > q()
+# Download the test data
+  - mkdir test
+  - cd test/
+  - wget -O testdata.zip https://ndownloader.figshare.com/articles/4762489?private_link=cc7347f4637d9a7fe22d
+  - unzip testdata.zip
+  - rm testdata.zip
+Edit pipeline_config file to point to the exome target:
+
+  - cat ../pipelines/pipeline_config.groovy # or use the editor of your choice
+# EXOME_TARGET="SCA8_region.bed"
+
+# command to run tests
+script:
+# Run the test data
+- ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy *.fastq.gz
