@@ -102,11 +102,13 @@ estimate_size = {
              exec """
                 Rscript $STRETCH/scripts/estimateSTR.R 
                     --model $STRETCH/scripts/STRcov.model.csv 
+                    --dir $output.dir
             """
         } else {
             exec """
                 Rscript $STRETCH/scripts/estimateSTR.R 
                     --model $STRETCH/scripts/STRcov.model.csv 
+                    --dir $output.dir
                     --control $CONTROL
             """
         }
