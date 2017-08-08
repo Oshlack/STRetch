@@ -5,8 +5,8 @@ language: r
 #   - devel
 cache: packages
 install:
-  - git clone git@github.com:Oshlack/STRetch.git STRetch
-  - cd STRetch
+#  - git clone git@github.com:Oshlack/STRetch.git STRetch
+#  - cd STRetch
   - ./install.sh
 # R
 # > install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))
