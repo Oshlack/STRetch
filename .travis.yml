@@ -8,6 +8,7 @@ install:
 #  - git clone git@github.com:Oshlack/STRetch.git STRetch
 #  - cd STRetch
   - pwd
+  - df -h
   - ./install.sh
 # Install R packages
   - R CMD BATCH install-packages.R
