@@ -12,6 +12,7 @@ install:
   - Rscript --verbose install-packages.R
 # Create working directory
   - mkdir test
+  - cp test-data/SCA8_region.bed test/
   - cd test/
 Edit pipeline_config file to point to the exome target:
 

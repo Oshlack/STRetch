@@ -71,7 +71,7 @@ echo "// Number of threads to use for BWA" >> $toolspec
 echo "threads=8" >> $toolspec
 echo >> $toolspec
 echo "// For exome pipeline only ***Edit before running the exome pipeline***" >> $toolspec
-echo "EXOME_TARGET=\"path/to/exome_target_regions.bed\"" >> $toolspec
+echo "EXOME_TARGET=\"SCA8_region.bed\"" >> $toolspec
 echo >> $toolspec
 
 #set STRetch base directory
@@ -103,13 +103,13 @@ echo "refdir=\"$refdir\"" >> $toolspec
 
 echo >> $toolspec
 echo "// Decoy reference assumed to have matching .genome file in the same directory" >> $toolspec
-echo "REF=\"$refdir/hg19.STRdecoys.sorted.fasta\"" >> $toolspec
+echo "REF=\"$refdir/hg19.chr13.STRdecoys.sorted.fasta\"" >> $toolspec
 echo "STR_BED=\"$refdir/hg19.simpleRepeat_period1-6_dedup.sorted.bed\"" >> $toolspec
 echo "DECOY_BED=\"$refdir/STRdecoys.sorted.bed\"" >> $toolspec
 echo "// By default, uses other samples in the same batch as a control" >> $toolspec
 echo "CONTROL=\"\"" >> $toolspec
 echo "// Uncomment the line below to use a set of WGS samples as controls, or specify your own" >> $toolspec
-echo "//CONTROL=\"$refdir/PCRfreeWGS.controls.tsv\"" >> $toolspec
+echo "CONTROL=\"$refdir/PCRfreeWGS.controls.tsv\"" >> $toolspec
 echo >> $toolspec
 
 
