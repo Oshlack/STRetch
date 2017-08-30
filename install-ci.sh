@@ -55,8 +55,8 @@ function download {
     unzip $refdir/reference-data.zip -d $refdir
     rm $refdir/reference-data.zip
 
-    mkdir test-data
-    mv $refdir/*.gz $refdir/*.bam $refdir/*.bai test-data
+    mkdir $installdir/test-data
+    mv $refdir/*.gz $refdir/*.bam $refdir/*.bai $installdir/test-data
 }
 
 #populate toolspec
