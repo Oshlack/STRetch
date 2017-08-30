@@ -11,7 +11,7 @@ install:
   - df -h
   - ./install-ci.sh
 # Install R packages
-  - R CMD BATCH install-packages.R
+  - Rscript --verbose install-packages.R
 # Download the test data
   - mkdir test
   - cd test/
