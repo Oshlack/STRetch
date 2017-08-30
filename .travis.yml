@@ -7,7 +7,7 @@ cache: packages
 install:
   - ./install-ci.sh
   - ls
-  - ls test-data
+  - ls *
 # Install R packages
   - Rscript --verbose install-packages.R
 # Create working directory
