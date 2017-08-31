@@ -6,7 +6,6 @@ language: r
 cache: packages
 install:
   - ./install-ci.sh
-  - ls
   - ls *
 # Install R packages
   - Rscript --verbose install-packages.R
@@ -14,6 +13,7 @@ install:
   - mkdir test
   - cp reference-data/SCA8_region.bed test/
   - cd test/
+  - df -h
 Edit pipeline_config file to point to the exome target:
 
   - cat ../pipelines/pipeline_config.groovy # or use the editor of your choice
