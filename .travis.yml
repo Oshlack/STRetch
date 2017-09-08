@@ -8,7 +8,7 @@ install:
   - ./install-ci.sh
   - ls *
   - ls tools/*
-  - tools/bin/bedtools --version
+  - PATH=$PATH:$PWD/tools/bin
 # Install R packages
   - Rscript --verbose install-packages.R
 # Create working directory
