@@ -6,13 +6,15 @@ language: r
 cache: packages
 install:
   - ./install-ci.sh
+  - ls *
+  - ls tools/*
+  - tools/bin/bedtools --version
 # Install R packages
   - Rscript --verbose install-packages.R
 # Create working directory
   - mkdir test
   - cp reference-data/SCA8_region.bed test/
   - cd test/
-  - bedtools --version
 Edit pipeline_config file to point to the exome target:
   - cat ../pipelines/pipeline_config.groovy # or use the editor of your choice
 # EXOME_TARGET="SCA8_region.bed"
