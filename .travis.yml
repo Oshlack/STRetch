@@ -6,9 +6,7 @@ language: r
 cache: packages
 install:
   - ./install-ci.sh
-  - ls *
-  - ls tools/*
-  - PATH=$PATH:$PWD/tools/bin
+  - PATH=$PATH:$PWD/tools/bin # might not be appropriate for users to add to their PATH
 # Install R packages
   - Rscript --verbose install-packages.R
 # Create working directory
@@ -23,3 +21,6 @@ Edit pipeline_config file to point to the exome target:
 script:
 # Run the test data
 - ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
+after_script:
+- head *.locus_counts *.STR_counts *.median_cov
+- head *.tsv
