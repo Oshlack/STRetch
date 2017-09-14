@@ -6,7 +6,7 @@ language: r
 cache: packages
 install:
   - ./install-ci.sh
-  - PATH=$PATH:$PWD/tools/bin # might not be appropriate for users to add to their PATH
+ # - PATH=$PATH:$PWD/tools/bin # might not be appropriate for users to add to their PATH
 # Install R packages
   - Rscript --verbose install-packages.R
 # Create working directory
