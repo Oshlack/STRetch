@@ -1,8 +1,4 @@
 language: r
-# r:
-#   - oldrel
-#   - release
-#   - devel
 cache: packages
 install:
   - ./install-ci.sh
@@ -13,10 +9,6 @@ install:
   - mkdir test
   - cp reference-data/SCA8_region.bed test/
   - cd test/
-Edit pipeline_config file to point to the exome target:
-  - cat ../pipelines/pipeline_config.groovy # or use the editor of your choice
-# EXOME_TARGET="SCA8_region.bed"
-
 # command to run tests
 script:
 # Run the test data
