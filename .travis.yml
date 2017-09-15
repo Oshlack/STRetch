@@ -14,5 +14,5 @@ script:
 # Run the test data
 - ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
 after_script:
-- head *.locus_counts *.STR_counts *.median_cov
+- head -n 600 *.locus_counts *.STR_counts *.median_cov
 - head *.tsv
