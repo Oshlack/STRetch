@@ -1,5 +1,6 @@
 name: STR
 channels:
+- conda-forge
 - bioconda
 dependencies:
 - python=3*
