@@ -17,6 +17,6 @@ run {
         median_cov_region +
         STR_coverage +
         STR_locus_counts
-    ] //+
-    //estimate_size
+    ] +
+    estimate_size
 }
