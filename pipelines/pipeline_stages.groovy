@@ -101,13 +101,13 @@ estimate_size = {
     produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
-                Rscript $STRETCH/scripts/estimateSTR.R 
-                    --model $STRETCH/scripts/STRcov.model.csv 
+                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R
+                    --model $STRETCH/scripts/STRcov.model.csv
             """
         } else {
             exec """
-                Rscript $STRETCH/scripts/estimateSTR.R 
-                    --model $STRETCH/scripts/STRcov.model.csv 
+                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R 
+                    --model $STRETCH/scripts/STRcov.model.csv
                     --control $CONTROL
             """
         }

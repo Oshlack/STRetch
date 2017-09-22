@@ -1,10 +1,12 @@
-language: r
+language: python
 cache: packages
 install:
   - ./install-ci.sh
  # - PATH=$PATH:$PWD/tools/bin # might not be appropriate for users to add to their PATH
 # Install R packages
-  - Rscript --verbose install-packages.R
+  - tools/bin/Rscript --verbose install-packages.R
+  - ls *
+  - ls tools/bin/
 # Create working directory
   - mkdir test
   - cp reference-data/SCA8_region.bed test/
