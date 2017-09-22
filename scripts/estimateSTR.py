@@ -1,0 +1,334 @@
+#!/usr/bin/env python
+"""Estimate allele lengths and find outliers at STR loci
+"""
+
+import argparse
+import sys
+import glob
+import os
+import re
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+from scipy.stats import norm
+from statsmodels.sandbox.stats.multicomp import multipletests
+from sklearn import linear_model
+
+__author__ = "Harriet Dashnow"
+__credits__ = ["Harriet Dashnow"]
+__license__ = "MIT"
+__version__ = "0.1.0"
+__email__ = "h.dashnow@gmail.com"
+
+def parse_args():
+    """Parse the input arguments, use '-h' for help"""
+    parser = argparse.ArgumentParser(description='Estimate allele lengths and find outliers at STR loci.')
+    parser.add_argument(
+        '--dir', type=str, default='.',
+        help='Working directory containing STR/locus count data and median coverage (default: %(default)s)')
+    parser.add_argument(
+        '--out', type=str, default = '',
+        help='Prefix for all output files (suffix will be STRs.tsv) (default: %(default)s)')
+    parser.add_argument(
+        '--model', type=str, default='STRcov.model.csv',
+        help='Data to produce linear regression model (provided with STRetch) (default: %(default)s)')
+    parser.add_argument(
+        '--control', type=str, default='',
+        help='Input file for median and standard deviation estimates at each locus from a set of control samples. This file can be produced by this script using the emit option. If this option is not set, all samples in the current batch will be used as controls by default.')
+    parser.add_argument(
+        '--emit', type=str, default='',
+        help='Output file for median and standard deviation estimates at each locus (tsv).')
+    return parser.parse_args()
+
+def get_sample(fullpath):
+    """Get the sample ID from the filename"""
+    basename = os.path.basename(fullpath)
+    return(basename.split('.')[0].split('_')[0])
+
+def parse_STRcov(filename):
+    """Parse all STR coverage"""
+    sample_id = get_sample(filename)
+    cov_data = pd.read_table(filename, delim_whitespace = True,
+                            names = ['chrom', 'start', 'end', 'decoycov'])
+    cov_data['sample'] = sample_id
+    cov_data['repeatunit'] = [x.split('-')[1] for x in cov_data['chrom']]
+    cov_data = cov_data[['sample', 'repeatunit', 'decoycov']]
+    return(cov_data)
+
+def parse_locuscov(filename):
+    """Parse locuscoverage data produced by identify_locus.py"""
+    sample_id = get_sample(filename)
+    locuscov_data = pd.read_table(filename, delim_whitespace = True)
+    locuscov_data['sample'] = sample_id
+    locuscov_data['locus'] = ['{0}-{1}-{2}'.format(locuscov_data['STR_chr'][i],
+                            locuscov_data['STR_start'][i], locuscov_data['STR_stop'][i]) for i in range(len(locuscov_data.index-1))]
+    locuscov_data['repeatunit'] = locuscov_data['motif']
+    locuscov_data['locuscoverage'] = locuscov_data['count']
+    locuscov_data = locuscov_data[['sample', 'locus', 'repeatunit', 'reflen', 'locuscoverage']]
+    return(locuscov_data)
+
+def parse_genomecov(filename):
+    """Parse median genome coverage from covmed output.
+        Assumes median coverage is the top left value in the text file."""
+    sample_id = get_sample(filename)
+    mediancov = pd.read_table(filename, delim_whitespace = True, header = None).iloc[0,0]
+    genomecov_data = pd.DataFrame({'sample': [sample_id], 'genomecov': [mediancov]})
+    return(genomecov_data)
+
+def hubers_est(x):
+    """Emit Huber's M-estimator median and SD estimates.
+    If Huber's fails, emit standard median and NA for sd"""
+    huber50 = sm.robust.scale.Huber(maxiter=50)
+    try:
+        mu, s = huber50(np.array(x))
+    except ValueError:
+        mu = np.median(x)
+        s = np.nan
+
+    #XXX working on this - replace s with mad when hubers est fails?
+    # from statsmodels import robust
+    # mu = np.median(x)
+    # s = robust.mad(x)
+
+    return pd.Series({'mu': mu, 'sd': np.sqrt(s)})
+
+def z_score(x, df):
+    """Calculate a z score for each x value, using estimates from a pandas data
+    frame with the columns 'mu' and 'sd' and index coressponding to the x values"""
+    z = (x.transpose() - df['mu'])/df['sd']
+    return z.transpose()
+
+def p_adj_bh(x):
+    '''Adjust p values using Benjamini/Hochberg method'''
+    return multipletests(x, method='fdr_bh')[1]
+
+def main():
+    # Parse command line arguments
+    args = parse_args()
+
+    base_filename = args.out
+    data_dir = args.dir
+    STRcov_model_csv = args.model
+    emit_file = args.emit
+    control_file = args.control
+
+    #XXX Change this so input files are provided as arguments
+    locuscov_files = glob.glob(data_dir + '/*.locus_counts')
+    STRcov_files = glob.glob(data_dir + '/*.STR_counts')
+    genomecov_files = glob.glob(data_dir + '/*.median_cov')
+    results_suffix = 'STRs.tsv'
+
+    # Check files exist for all samples
+    locuscov_ids = set([get_sample(f) for f in locuscov_files])
+    STRcov_ids = set([get_sample(f) for f in STRcov_files])
+    genomecov_ids = set([get_sample(f) for f in genomecov_files])
+    if not (locuscov_ids == STRcov_ids == genomecov_ids):
+        all_samples = locuscov_ids | STRcov_ids | genomecov_ids
+        missing_samples = (all_samples - locuscov_ids) | (all_samples - STRcov_ids) | (all_samples - genomecov_ids)
+        sys.exit("One or more files are missing for sample(s): " + ' '.join(missing_samples))
+
+    # Parse input data
+    locuscov_data = pd.concat( (parse_locuscov(f) for f in locuscov_files), ignore_index = True)
+    STRcov_data = pd.concat( (parse_STRcov(f) for f in STRcov_files), ignore_index = True)
+    genomecov_data = pd.concat( (parse_genomecov(f) for f in genomecov_files), ignore_index = True)
+
+    # Check for multiple rows with the same sample/locus combination
+    crosstable = pd.crosstab(locuscov_data['locus'], locuscov_data['sample'])
+    ismultiloci = crosstable.apply(lambda row: any(row > 1), axis=1)
+    multiloci = ismultiloci[ismultiloci == True].index.values
+    if len(multiloci) > 0:
+        sys.exit('''
+    The locus count input data contains multiple rows with the same sample/locus combination.
+    This is usually caused by two loci at the same position in the STR annotation bed file.
+    Check these loci:
+    ''' + ' '.join(multiloci))
+
+    # Fill zeros in locuscov
+    locuscov_wide = locuscov_data.pivot(index='locus', columns='sample', values='locuscoverage').fillna(0)
+    locuscov_wide['locus'] = locuscov_wide.index
+    sample_cols = list(set(locuscov_data['sample']))
+    locuscov_long = pd.melt(locuscov_wide, id_vars = 'locus',
+                            value_vars = sample_cols, value_name = 'locuscoverage')
+    # Add locus info back in
+    locuscov_data = pd.merge(locuscov_long, locuscov_data[['locus', 'repeatunit', 'reflen']].drop_duplicates(), how='left')
+
+    # Normalise STR coverage by median coverage
+    factor = 100
+
+    STRcov_data = pd.merge(STRcov_data, genomecov_data)
+    #STRcov_data['decoycov_norm'] = factor * (STRcov_data['decoycov'] + 1) / STRcov_data['genomecov']
+    #STRcov_data['decoycov_log'] = np.log2(STRcov_data['decoycov_norm'])
+    #XXX combines the previous two lines into one. Keeping commented out in case coverage_norm is required later
+    STRcov_data['decoycov_log'] = np.log2(factor * (STRcov_data['decoycov'] + 1) / STRcov_data['genomecov'])
+    #print(STRcov_data.head())
+
+    # #XXX ***Not fully implemented***
+    # # Look for repeat units where the number of reads mapping to the decoy can't be
+    # # explained by those mapping to all loci with that repeat unit
+    #
+    # # Sum the counts over all loci for each repeat unit in each sample
+    # locus_totals = locuscov_data.groupby(['sample', 'repeatunit'])['locuscoverage'].aggregate(np.sum)
+    # locus_totals = pd.DataFrame(locus_totals).reset_index() # convert to DataFrame and make indices into columns
+    # # Calculate the difference between reads assigned to a decoy and the sum of
+    # # all reads assigned to loci with that repeat unit
+    # all_differences = pd.merge(STRcov_data, locus_totals, how='left')
+    # all_differences['difference'] = all_differences['decoycov'] - all_differences['locuscoverage']
+    # # Normalise differences by median coverage and take the log2
+    # all_differences['difference_log'] = np.log2(factor * (all_differences['difference'] + 1) / all_differences['genomecov'])
+    #
+    # locus_totals = pd.merge(locus_totals, STRcov_data)
+    #
+    # # Assign decoy counts to each locus, based on what proportion of the counts for that repeat unit they already have
+
+    locus_totals = pd.merge(locuscov_data, STRcov_data)
+
+    locus_totals['total_assigned'] = locus_totals['locuscoverage'] #XXX remove this line if implementing the above
+    locus_totals['total_assigned_log'] = np.log2(factor * (locus_totals['total_assigned'] + 1) / locus_totals['genomecov'])
+
+    # For each locus, calculate if that sample is an outlier relative to others
+    total_assigned_wide = locus_totals.pivot(index='locus', columns='sample', values='total_assigned_log')
+
+    # Calculate a z scores using median and SD estimates from the current set
+    # of samples
+    if control_file == '' or emit_file != '':
+        # Use Huber's M-estimator to calculate median and SD across all samples
+        # for each locus
+        mu_sd_estimates = total_assigned_wide.apply(hubers_est, axis=1)
+        # Where sd is NA, replace with the minimum non-zero sd from all loci
+        min_sd = np.min(mu_sd_estimates['sd'][mu_sd_estimates['sd'] > 0])
+        mu_sd_estimates['sd'].fillna(min_sd, inplace=True)
+
+        # Save median and SD of all loci to file if requested (for use as a
+        # control set for future data sets)
+        if emit_file != '':
+            # Add a null locus that has 0 reads for all individuals
+            # (so just uses coverage)
+            null_locus_counts = np.log2(factor * (0 + 1) / genomecov_data['genomecov'])
+            null_locus_counts_est = hubers_est(null_locus_counts)
+
+            # if sd is 0, replace with min_sd #XXX is this sensible?
+            if null_locus_counts_est['sd'] == 0:
+                null_locus_counts_est['sd'] = min_sd
+
+            mu_sd_estimates.loc['null_locus_counts'] = null_locus_counts_est
+
+            n = len(total_assigned_wide.columns)
+            mu_sd_estimates['n'] = n
+
+            mu_sd_estimates.to_csv(emit_file, sep= '\t')
+
+    # Calculate z scores using median and SD estimates per locus from a
+    # provided control set
+    if control_file != '':
+        # Parse control file
+        control_estimates = pd.read_table(control_file, index_col=0)
+
+        # Allow for old style column headings, but change to mu and sd.
+        if control_estimates.columns[0] in ['mu', 'median'] and control_estimates.columns[1] in ['sd', 'SD']:
+            colnames = list(control_estimates.columns)
+            colnames[0:2] = ['mu', 'sd']
+            control_estimates.columns = colnames
+        else:
+            raise ValueError(''.join(["The column names in the control file ",
+            "don't look right, expecting columns named median, SD ",
+            "or mu, sd. Column names are ", str(list(control_estimates.columns)),
+            ". Check the file: ", control_file]))
+
+        # Extract and order just those control estimates appearing in the current data
+        mu_sd_estimates = control_estimates.loc[total_assigned_wide.index]
+        # Fill NaNs with null_locus_counts values
+        mu_sd_estimates.fillna(control_estimates.loc['null_locus_counts'],
+                                inplace=True)
+
+    # calculate z scores
+    z = z_score(total_assigned_wide, mu_sd_estimates)
+
+    if z.shape[0] == 1:
+        ids = z.columns # save index order as data gets sorted
+        # Calculate p values based on z scores (one sided)
+        z_list = list(z.iloc[0])
+        pvals = norm.sf(z_list) # no need to adjust p values if one locus
+
+        # Merge pvals and z scores back into locus_totals
+        p_z_df = pd.DataFrame({'sample': ids, 'p_adj': pvals, 'outlier': z_list})
+        locus_totals = pd.merge(locus_totals, p_z_df)
+
+    elif z.shape[0] > 1:
+        # Calculate p values based on z scores (one sided)
+        pvals = z.apply(lambda z_row: [norm.sf(x) for x in z_row], axis=1) # apply to each row
+
+        # Adjust p values using Benjamini/Hochberg method
+        adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
+
+        # Merge pvals and z scores back into locus_totals
+        adj_pvals['locus'] = adj_pvals.index
+        pvals_long = pd.melt(adj_pvals, id_vars = 'locus',
+                                value_vars = sample_cols, value_name = 'p_adj')
+
+        locus_totals = pd.merge(locus_totals, pvals_long)
+
+        z['locus'] = z.index #important to do this only after p values calculated
+        z_long = pd.melt(z, id_vars = 'locus',
+                        value_vars = sample_cols, value_name = 'outlier')
+        locus_totals = pd.merge(locus_totals, z_long)
+
+    elif z.shape[0] == 0:
+        pass #XXX raise error. No input data!
+
+    # Predict size (in bp) using the ATXN8 linear model (produced from data in
+    # decoySTR_cov_sim_ATXN8_AGC.R)
+    # Read in the raw data for this model from a file
+    # Note: coverage_norm = (STR coverage/median coverage) * 100
+    # allele2 is the length of the longer allele in bp inserted relative to ref
+    STRcov_model = pd.read_csv(STRcov_model_csv)
+
+    # Model is built from log2 data then converted back
+    # (to reduce heteroscedasticity)
+
+    # Create linear regression object
+    regr = linear_model.LinearRegression()
+    # Train the model
+    # Reshape using X.reshape(-1, 1) if data has a single feature
+    # or X.reshape(1, -1) if it contains a single sample.
+    X_train = np.log2(STRcov_model['coverage_norm']).reshape(-1, 1)
+    Y_train = np.log2(STRcov_model['allele2'])
+    regr.fit(X_train, Y_train)
+    # Make a prediction
+    Y_pred = regr.predict(locus_totals['total_assigned_log'].reshape(-1, 1))
+    predict = np.power(2, Y_pred)
+    locus_totals['bpInsertion'] = predict
+
+    # Get the estimated size in terms of repeat units (total, not relative to ref)
+    repeatunit_lens = [len(x) for x in locus_totals['repeatunit']]
+    locus_totals['repeatUnits'] = (locus_totals['bpInsertion']/repeatunit_lens) + locus_totals['reflen']
+
+    # Split locus into 3 columns: chrom start end
+    locuscols = pd.DataFrame([x.split('-') for x in locus_totals['locus']],
+                        columns = ['chrom', 'start', 'end'])
+    locus_totals = locus_totals.join(locuscols)
+
+    # Specify output data columns
+    write_data = locus_totals[['chrom', 'start', 'end',
+                                    'sample', 'repeatunit', 'reflen',
+                                    'locuscoverage',
+                                    'outlier', 'p_adj',
+                                    'bpInsertion', 'repeatUnits'
+                                    ]]
+
+    #sort by outlier score then estimated size (bpInsertion), both descending
+    write_data = write_data.sort_values(['outlier', 'bpInsertion'], ascending=[False, False])
+    #XXX check for duplicate rows?
+
+    # Write individual files for each sample, remove rows where locuscoverage == 0
+    samples = set(write_data['sample'])
+    for sample in samples:
+        sample_filename = base_filename + sample + '.' + results_suffix
+        sample_df = write_data.loc[write_data['sample'] == sample]
+        sample_df.to_csv(sample_filename, sep= '\t', index = False)
+
+    # Write all samples to a single file
+    all_filename = base_filename + results_suffix
+    write_data.to_csv(all_filename, sep= '\t', index = False)
+
+if __name__ == '__main__':
+    main()
