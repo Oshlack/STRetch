@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/hdashnow/STRetch-paper.svg?branch=ci)](https://travis-ci.org/hdashnow/STRetch-paper)
+
 **Update:** the STRetch paper is now available!
 
 If using STRetch, please cite:
