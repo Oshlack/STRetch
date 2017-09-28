@@ -23,13 +23,13 @@ set_sample_info = {
 
     if(!file(REF).exists())
         fail """
-             The configured decoy reference file: $REF could not be found. 
+             The configured decoy reference file: $REF could not be found.
 
              Please check pipelines/pipeline_config.groovy to make sure this is set correctly
         """
 
     [bwa,samtools,bedtools,goleft,python].each { tool ->
-        if(!file(tool).exists()) 
+        if(!file(tool).exists())
             fail """
                  The location of tool $tool does not appear to exist.
 
@@ -88,10 +88,13 @@ STR_coverage = {
 STR_locus_counts = {
     transform("bam") to ("locus_counts") {
         exec """
+            STRPATH=$PATH;
+            PATH=$STRETCH/tools/bin:$PATH;
             $python $STRETCH/scripts/identify_locus.py
             --bam $input.bam
             --bed $STR_BED
             --output $output.locus_counts
+            ;PATH=$STRPATH
         """
     }
 }
@@ -100,13 +103,13 @@ estimate_size = {
     produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
-                Rscript $STRETCH/scripts/estimateSTR.R 
-                    --model $STRETCH/scripts/STRcov.model.csv 
+                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R
+                    --model $STRETCH/scripts/STRcov.model.csv
             """
         } else {
             exec """
-                Rscript $STRETCH/scripts/estimateSTR.R 
-                    --model $STRETCH/scripts/STRcov.model.csv 
+                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R
+                    --model $STRETCH/scripts/STRcov.model.csv
                     --control $CONTROL
             """
         }
@@ -144,12 +147,12 @@ doc "Calculate the median coverage over the target region"
 
 @filter('slop')
 str_targets = {
-        
+
     doc "Create bed file of region likely to contain STR reads and their mates"
 
     SLOP=800
 
-    //produce(STR_BED[0..-3] + 'slop.bed') {    
+    //produce(STR_BED[0..-3] + 'slop.bed') {
         exec """
             $bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | $bedtools merge > $output.bed
         """
@@ -165,9 +168,9 @@ extract_reads_region = {
     produce(branch.sample + '_L001_R1.fastq.gz', branch.sample + '_L001_R2.fastq.gz') {
         exec """
 
-            cat <( $samtools view -hu -L $input.bed $input.bam ) 
-                <( $samtools view -u -f 4 $input.bam ) | 
-            $samtools collate -Ou -n 128 - $output.prefix | 
+            cat <( $samtools view -hu -L $input.bed $input.bam )
+                <( $samtools view -u -f 4 $input.bam ) |
+            $samtools collate -Ou -n 128 - $output.prefix |
             $bedtools bamtofastq -i - -fq >(gzip -c > $output1.gz) -fq2 >(gzip -c > $output2.gz)
         """
     }

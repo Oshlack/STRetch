@@ -1,8 +1,10 @@
 name: STR
 channels:
+- conda-forge
 - bioconda
 dependencies:
 - python=3*
+- R
 - BioPython
 - PyVCF
 - pysam
