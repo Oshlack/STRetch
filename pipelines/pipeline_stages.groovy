@@ -65,6 +65,26 @@ align_bwa = {
     }
 }
 
+@preserve("*.bam")
+align_bwa_bam = {
+    doc "Align reads with bwa mem algorithm."
+
+    def fastaname = get_fname(REF)
+    produce(branch.sample + '.bam') {
+        exec """
+            set -o pipefail
+
+            export JAVA_OPTS="-Dsamjdk.reference_fasta=$REF"
+
+            gngstool ExtractFASTQ -bam ${input[input_type]} |
+                $bwa mem -p -M -t $threads
+                    -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
+                    $REF - |
+                $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
+        """, "bwamem"
+    }
+}
+
 @preserve("*.bai")
 index_bam = {
     transform("bam") to ("bam.bai") {

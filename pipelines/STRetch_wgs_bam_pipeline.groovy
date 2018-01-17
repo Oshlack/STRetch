@@ -7,12 +7,17 @@ load 'pipeline_config.groovy'
 // Load Bpipe pipeline stages
 load 'pipeline_stages.groovy'
 
+input_type='bam'
+
+inputs "$input_type" : "Please supply one or more $input_type files to process",
+       "bed"         : "Please give a BED file defining the target regions to analyse"
+
 run {
     str_targets +
-    '%.bam' * [
+    "%.${input_type}" * [
         set_sample_info +
-        extract_reads_region +
-        align_bwa + index_bam +
+//         extract_reads_region +
+        align_bwa_bam + index_bam +
         median_cov_target +
         STR_coverage +
         STR_locus_counts 
