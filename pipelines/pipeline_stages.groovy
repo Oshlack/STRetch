@@ -174,6 +174,8 @@ str_targets = {
 
     //produce(STR_BED[0..-3] + 'slop.bed') {
         exec """
+            set -o pipefail
+
             $bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | $bedtools merge > $output.bed
         """
     //}
