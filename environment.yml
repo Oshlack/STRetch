@@ -13,3 +13,7 @@ dependencies:
 - htslib
 - pybedtools
 - goleft=0.1.8
+- statsmodels
+- scikit-learn
+- scipy
+- numpy
