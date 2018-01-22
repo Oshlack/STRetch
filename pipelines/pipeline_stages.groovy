@@ -103,12 +103,14 @@ estimate_size = {
     produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
-                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R
+                PATH=$PATH:$STRETCH/tools/bin;
+                $python $STRETCH/scripts/estimateSTR.py
                     --model $STRETCH/scripts/STRcov.model.csv
             """
         } else {
             exec """
-                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R
+                PATH=$PATH:$STRETCH/tools/bin;
+                $python $STRETCH/scripts/estimateSTR.py
                     --model $STRETCH/scripts/STRcov.model.csv
                     --control $CONTROL
             """
