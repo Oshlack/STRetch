@@ -4,7 +4,6 @@ channels:
 - bioconda
 dependencies:
 - python=3*
-- R
 - BioPython
 - PyVCF
 - pysam
