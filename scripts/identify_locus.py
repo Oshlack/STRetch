@@ -144,10 +144,12 @@ def main():
 
     outstream.close()
 
-    if unpaired == total:
-        sys.exit('ERROR: all reads tested appear to be unpaired. You may wish to check your bam file is paired end and correctly formed.')
+    if total == 0:
+        sys.exit('ERROR: there were no reads overlapping the target STR regions. This may indicate a problem with the input file.\n')
+    elif unpaired == total:
+        sys.exit('ERROR: all {0} reads overlapping the target STR regions appear to be unpaired. You may wish to check your bam file is paired-end and correctly formed.\n'.format(total))
     elif unpaired > 0:
-        sys.stderr.write('WARNING: it appears that {} of {} reads checked were unpaired and so no useful data could be obtained from them.\n')
+        sys.stderr.write('WARNING: it appears that {0} of the {1} reads overlapping the target STR regions were unpaired and so no useful data could be obtained from them.\n'.format(unpaired, total))
 
 if __name__ == '__main__':
     main()
