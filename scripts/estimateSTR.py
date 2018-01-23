@@ -48,8 +48,11 @@ def get_sample(fullpath):
 def parse_STRcov(filename):
     """Parse all STR coverage"""
     sample_id = get_sample(filename)
-    cov_data = pd.read_table(filename, delim_whitespace = True,
+    try:
+        cov_data = pd.read_table(filename, delim_whitespace = True,
                             names = ['chrom', 'start', 'end', 'decoycov'])
+    except pd.io.common.EmptyDataError:
+        sys.exit('ERROR: file {0} was empty.\n'.format(filename))
     cov_data['sample'] = sample_id
     cov_data['repeatunit'] = [x.split('-')[1] for x in cov_data['chrom']]
     cov_data = cov_data[['sample', 'repeatunit', 'decoycov']]
@@ -58,7 +61,13 @@ def parse_STRcov(filename):
 def parse_locuscov(filename):
     """Parse locuscoverage data produced by identify_locus.py"""
     sample_id = get_sample(filename)
-    locuscov_data = pd.read_table(filename, delim_whitespace = True)
+    try:
+        locuscov_data = pd.read_table(filename, delim_whitespace = True)
+    except pd.io.common.EmptyDataError:
+        sys.exit('ERROR: file {0} was empty.\n'.format(filename))
+    if locuscov_data.shape[0] == 0: # Check for file with only header
+        sys.exit('ERROR: file {0} contained 0 loci.\n'.format(filename))
+
     locuscov_data['sample'] = sample_id
     locuscov_data['locus'] = ['{0}-{1}-{2}'.format(locuscov_data['STR_chr'][i],
                             locuscov_data['STR_start'][i], locuscov_data['STR_stop'][i]) for i in range(len(locuscov_data.index-1))]
@@ -71,7 +80,10 @@ def parse_genomecov(filename):
     """Parse median genome coverage from covmed output.
         Assumes median coverage is the top left value in the text file."""
     sample_id = get_sample(filename)
-    mediancov = pd.read_table(filename, delim_whitespace = True, header = None).iloc[0,0]
+    try:
+        mediancov = pd.read_table(filename, delim_whitespace = True, header = None).iloc[0,0]
+    except pd.io.common.EmptyDataError:
+        sys.exit('ERROR: file {0} was empty.\n'.format(filename))
     genomecov_data = pd.DataFrame({'sample': [sample_id], 'genomecov': [mediancov]})
     return(genomecov_data)
 
