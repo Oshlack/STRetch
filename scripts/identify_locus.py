@@ -56,14 +56,20 @@ def detect_readlen(bamfile, sample = 100):
     bam = pysam.Samfile(bamfile, 'rb')
     maxlen = 0
     count = 0
+    count_noCIGAR = 0
+
     for read in bam.fetch():
         count += 1
         readlen = read.infer_query_length(always=False)
-        if readlen > maxlen:
-            maxlen = readlen
+        if readlen:
+            if readlen > maxlen:
+                maxlen = readlen
+        else:
+            count_noCIGAR += 1
+
         if count >= sample:
             bam.close()
-            return maxlen
+            return maxlen, count_noCIGAR
 
 def main():
     # Parse command line arguments
@@ -84,7 +90,7 @@ def main():
 
     #STR_bed = parse_bed(args.bed, position_base=0)
     STR_bed = bt.BedTool(bedfile)
-    readlen = detect_readlen(bamfile)
+    readlen, count_noCIGAR = detect_readlen(bamfile)
 
     # Read bam
     bam = pysam.Samfile(bamfile, 'rb')
@@ -143,6 +149,10 @@ def main():
             summed.to_csv(outstream, sep='\t', header=False, index=False)
 
     outstream.close()
+
+    # Print a warning message in case of reads without a CIGAR string
+    if count_noCIGAR > 0:
+        sys.stderr.write('WARNING: ' + str(count_noCIGAR) + ' read(s) in ' + bamfile + ' file had no CIGAR string.')
 
     if total == 0:
         sys.exit('ERROR: there were no reads overlapping the target STR regions. This may indicate a problem with the input file.\n')
