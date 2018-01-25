@@ -2,17 +2,21 @@
 """Estimate allele lengths and find outliers at STR loci
 """
 
-import argparse
-import sys
-import glob
-import os
-import re
-import pandas as pd
-import numpy as np
-import statsmodels.api as sm
-from scipy.stats import norm
-from statsmodels.sandbox.stats.multicomp import multipletests
-from sklearn import linear_model
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", FutureWarning)
+
+    import argparse
+    import sys
+    import glob
+    import os
+    import re
+    import numpy as np
+    import statsmodels.api as sm
+    from scipy.stats import norm
+    from statsmodels.sandbox.stats.multicomp import multipletests
+    from sklearn import linear_model
+    import pandas as pd
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -87,20 +91,25 @@ def parse_genomecov(filename):
     genomecov_data = pd.DataFrame({'sample': [sample_id], 'genomecov': [mediancov]})
     return(genomecov_data)
 
+#from statsmodels import robust
+# If using mad below
+
 def hubers_est(x):
     """Emit Huber's M-estimator median and SD estimates.
     If Huber's fails, emit standard median and NA for sd"""
     huber50 = sm.robust.scale.Huber(maxiter=50)
-    try:
-        mu, s = huber50(np.array(x))
-    except ValueError:
-        mu = np.median(x)
-        s = np.nan
 
-    #XXX working on this - replace s with mad when hubers est fails?
-    # from statsmodels import robust
-    # mu = np.median(x)
-    # s = robust.mad(x)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+
+
+        try:
+            mu, s = huber50(np.array(x))
+        except (ValueError, RuntimeWarning):
+            mu = np.median(x)
+            s = np.nan
+            #s = robust.mad(x)
+            #XXX working on this - replace s with mad when hubers est fails?
 
     return pd.Series({'mu': mu, 'sd': np.sqrt(s)})
 
@@ -138,6 +147,8 @@ def main():
         all_samples = locuscov_ids | STRcov_ids | genomecov_ids
         missing_samples = (all_samples - locuscov_ids) | (all_samples - STRcov_ids) | (all_samples - genomecov_ids)
         sys.exit("One or more files are missing for sample(s): " + ' '.join(missing_samples))
+    
+    sys.stderr.write('Processing {0} samples\n'.format(len(locuscov_files)))
 
     # Parse input data
     locuscov_data = pd.concat( (parse_locuscov(f) for f in locuscov_files), ignore_index = True)
@@ -302,11 +313,11 @@ def main():
     # Train the model
     # Reshape using X.reshape(-1, 1) if data has a single feature
     # or X.reshape(1, -1) if it contains a single sample.
-    X_train = np.log2(STRcov_model['coverage_norm']).reshape(-1, 1)
+    X_train = np.log2(STRcov_model['coverage_norm']).values.reshape(-1, 1)
     Y_train = np.log2(STRcov_model['allele2'])
     regr.fit(X_train, Y_train)
     # Make a prediction
-    Y_pred = regr.predict(locus_totals['total_assigned_log'].reshape(-1, 1))
+    Y_pred = regr.predict(locus_totals['total_assigned_log'].values.reshape(-1, 1))
     predict = np.power(2, Y_pred)
     locus_totals['bpInsertion'] = predict
 
