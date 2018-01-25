@@ -165,6 +165,26 @@ def main():
     This is usually caused by two loci at the same position in the STR annotation bed file.
     Check these loci:
     ''' + ' '.join(multiloci))
+    
+#    # Check for different reflen for the same locus
+#    grouped = locuscov_data.groupby('locus')
+#    reflenloci = []
+#    for locus, group in grouped:
+#        if len(set(group['reflen'])) > 1:
+#            #reflenloci.append(name)
+#            # If different, replace with the smallest
+#            locuscov_data.loc[locuscov_data['locus'] == locus,'reflen'] = np.repeat(min(group['reflen']), len(group['reflen']))
+#    if len(reflenloci) > 0:
+#         sys.exit('''
+#    The locus count input data contains the same locus with different reflens.
+#    This may be caused by an error in the STR annotation bed file.
+#    Check these loci:
+#    ''' + ' '.join(reflenloci)) + '''
+#    The locus count input data contains the same locus with different reflens.
+#    This may be caused by an error in the STR annotation bed file.
+#    Check the above loci'''
+
+    #locuscov_data['reflen'] = np.repeat(1, len(locuscov_data['reflen']))
 
     # Fill zeros in locuscov
     locuscov_wide = locuscov_data.pivot(index='locus', columns='sample', values='locuscoverage').fillna(0)
@@ -172,6 +192,7 @@ def main():
     sample_cols = list(set(locuscov_data['sample']))
     locuscov_long = pd.melt(locuscov_wide, id_vars = 'locus',
                             value_vars = sample_cols, value_name = 'locuscoverage')
+
     # Add locus info back in
     locuscov_data = pd.merge(locuscov_long, locuscov_data[['locus', 'repeatunit', 'reflen']].drop_duplicates(), how='left')
 
@@ -183,7 +204,6 @@ def main():
     #STRcov_data['decoycov_log'] = np.log2(STRcov_data['decoycov_norm'])
     #XXX combines the previous two lines into one. Keeping commented out in case coverage_norm is required later
     STRcov_data['decoycov_log'] = np.log2(factor * (STRcov_data['decoycov'] + 1) / STRcov_data['genomecov'])
-    #print(STRcov_data.head())
 
     # #XXX ***Not fully implemented***
     # # Look for repeat units where the number of reads mapping to the decoy can't be
@@ -207,7 +227,7 @@ def main():
 
     locus_totals['total_assigned'] = locus_totals['locuscoverage'] #XXX remove this line if implementing the above
     locus_totals['total_assigned_log'] = np.log2(factor * (locus_totals['total_assigned'] + 1) / locus_totals['genomecov'])
-
+    
     # For each locus, calculate if that sample is an outlier relative to others
     total_assigned_wide = locus_totals.pivot(index='locus', columns='sample', values='total_assigned_log')
 
