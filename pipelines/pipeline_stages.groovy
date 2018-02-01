@@ -127,6 +127,8 @@ median_cov = {
 doc "Calculate the median coverage over the whole genome"
 
     exec """
+        set -o pipefail
+
         $goleft covmed $input.bam | cut -f 1 > $output.median_cov
      """
 }
@@ -140,6 +142,8 @@ median_cov_region = {
 doc "Calculate the median coverage over the target region"
 
     exec """
+        set -o pipefail
+
         $goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
      """
 }
@@ -156,6 +160,8 @@ str_targets = {
 
     //produce(STR_BED[0..-3] + 'slop.bed') {
         exec """
+            set -o pipefail
+
             $bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | $bedtools merge > $output.bed
         """
     //}
@@ -169,6 +175,7 @@ extract_reads_region = {
 
     produce(branch.sample + '_L001_R1.fastq.gz', branch.sample + '_L001_R2.fastq.gz') {
         exec """
+            set -o pipefail
 
             cat <( $samtools view -hu -L $input.bed $input.bam )
                 <( $samtools view -u -f 4 $input.bam ) |
@@ -184,6 +191,8 @@ median_cov_target = {
 doc "Calculate the median coverage over the target region"
 
     exec """
+        set -o pipefail
+
         $goleft covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
      """
 }
