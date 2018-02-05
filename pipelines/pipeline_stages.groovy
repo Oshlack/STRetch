@@ -181,7 +181,7 @@ extract_reads_region = {
                 <( $samtools view -u -f 4 $input.bam ) |
             $samtools collate -Ou -n 128 - $output.prefix |
             $bedtools bamtofastq -i - -fq >(gzip -c > $output1.gz) -fq2 >(gzip -c > $output2.gz)
-        """
+        """, "bwamem"
     }
 }
 
