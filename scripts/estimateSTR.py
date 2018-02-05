@@ -276,7 +276,7 @@ def main():
             "don't look right, expecting columns named median, SD ",
             "or mu, sd. Column names are ", str(list(control_estimates.columns)),
             ". Check the file: ", control_file]))
-
+        
         # Extract and order just those control estimates appearing in the current data
         mu_sd_estimates = control_estimates.loc[total_assigned_wide.index]
         # Fill NaNs with null_locus_counts values
@@ -367,6 +367,7 @@ def main():
     for sample in samples:
         sample_filename = base_filename + sample + '.' + results_suffix
         sample_df = write_data.loc[write_data['sample'] == sample]
+        sample_df = sample_df.loc[sample_df['locuscoverage'] != 0.0]
         sample_df.to_csv(sample_filename, sep= '\t', index = False)
 
     # Write all samples to a single file
