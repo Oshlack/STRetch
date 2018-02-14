@@ -53,7 +53,7 @@ def parse_args():
 def get_sample(fullpath):
     """Get the sample ID from the filename"""
     basename = os.path.basename(fullpath)
-    return(basename.split('.')[0].split('_')[0])
+    return(basename.split('.')[0])
 
 def parse_STRcov(filename):
     """Parse all STR coverage"""
