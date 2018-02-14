@@ -28,8 +28,14 @@ def parse_args():
     """Parse the input arguments, use '-h' for help"""
     parser = argparse.ArgumentParser(description='Estimate allele lengths and find outliers at STR loci.')
     parser.add_argument(
-        '--dir', type=str, default='.',
-        help='Working directory containing STR/locus count data and median coverage (default: %(default)s)')
+        '--locus_counts', type=str, nargs='+', required = True,
+        help='.locus_counts files for all samples. Contains the number of reads assigned to each STR locus.')
+    parser.add_argument(
+        '--STR_counts', type=str, nargs='+', required = True,
+        help='.STR_counts files for all samples. Contains the number of reads mapped to each STR decoy chromosome.')
+    parser.add_argument(
+        '--median_cov', type=str, nargs='+', required = True,
+        help='.median_cov files for all samples. Text files containing median coverage.')
     parser.add_argument(
         '--out', type=str, default = '',
         help='Prefix for all output files (suffix will be STRs.tsv) (default: %(default)s)')
@@ -128,15 +134,12 @@ def main():
     args = parse_args()
 
     base_filename = args.out
-    data_dir = args.dir
     STRcov_model_csv = args.model
     emit_file = args.emit
     control_file = args.control
-
-    #XXX Change this so input files are provided as arguments
-    locuscov_files = glob.glob(data_dir + '/*.locus_counts')
-    STRcov_files = glob.glob(data_dir + '/*.STR_counts')
-    genomecov_files = glob.glob(data_dir + '/*.median_cov')
+    locuscov_files = args.locus_counts
+    STRcov_files = args.STR_counts
+    genomecov_files = args.median_cov
     results_suffix = 'STRs.tsv'
 
     # Check files exist for all samples

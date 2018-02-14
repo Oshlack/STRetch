@@ -105,12 +105,18 @@ estimate_size = {
              exec """
                 PATH=$PATH:$STRETCH/tools/bin;
                 $python $STRETCH/scripts/estimateSTR.py
+                    --locus_counts $inputs.locus_counts 
+                    --STR_counts $inputs.STR_counts 
+                    --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
             """
         } else {
             exec """
                 PATH=$PATH:$STRETCH/tools/bin;
                 $python $STRETCH/scripts/estimateSTR.py
+                    --locus_counts $inputs.locus_counts 
+                    --STR_counts $inputs.STR_counts 
+                    --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
                     --control $CONTROL
             """
