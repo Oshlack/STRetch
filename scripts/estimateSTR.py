@@ -97,6 +97,24 @@ def parse_genomecov(filename):
     genomecov_data = pd.DataFrame({'sample': [sample_id], 'genomecov': [mediancov]})
     return(genomecov_data)
 
+
+def parse_controls(control_file):
+    """Parse control file with columns locus, median and standard deviation"""
+
+    control_estimates = pd.read_table(control_file, index_col=0)
+
+    # Allow for old style column headings, but change to mu and sd.
+    if control_estimates.columns[0] in ['mu', 'median'] and control_estimates.columns[1] in ['sd', 'SD']:
+        colnames = list(control_estimates.columns)
+        colnames[0:2] = ['mu', 'sd']
+        control_estimates.columns = colnames
+    else:
+        raise ValueError(''.join(["The column names in the control file ",
+        "don't look right, expecting columns named median, SD ",
+        "or mu, sd. Column names are ", str(list(control_estimates.columns)),
+        ". Check the file: ", control_file]))
+    return(control_estimates)
+
 #from statsmodels import robust
 # If using mad below
 
@@ -107,7 +125,6 @@ def hubers_est(x):
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
-
 
         try:
             mu, s = huber50(np.array(x))
@@ -192,9 +209,11 @@ def main():
     # Fill zeros in locuscov
     locuscov_wide = locuscov_data.pivot(index='locus', columns='sample', values='locuscoverage').fillna(0)
     locuscov_wide['locus'] = locuscov_wide.index
+
     sample_cols = list(set(locuscov_data['sample']))
     locuscov_long = pd.melt(locuscov_wide, id_vars = 'locus',
-                            value_vars = sample_cols, value_name = 'locuscoverage')
+                            value_vars = sample_cols, value_name = 'locuscoverage',
+                            var_name = 'sample')
 
     # Add locus info back in
     locuscov_data = pd.merge(locuscov_long, locuscov_data[['locus', 'repeatunit', 'reflen']].drop_duplicates(), how='left')
@@ -226,7 +245,7 @@ def main():
     #
     # # Assign decoy counts to each locus, based on what proportion of the counts for that repeat unit they already have
 
-    locus_totals = pd.merge(locuscov_data, STRcov_data)
+    locus_totals = pd.merge(locuscov_data, STRcov_data, how = 'left')
 
     locus_totals['total_assigned'] = locus_totals['locuscoverage'] #XXX remove this line if implementing the above
     locus_totals['total_assigned_log'] = np.log2(factor * (locus_totals['total_assigned'] + 1) / locus_totals['genomecov'])
@@ -234,52 +253,45 @@ def main():
     # For each locus, calculate if that sample is an outlier relative to others
     total_assigned_wide = locus_totals.pivot(index='locus', columns='sample', values='total_assigned_log')
 
+    # Calculate values for if there were zero reads at a locus in all samples
+    null_locus_counts = np.log2(factor * (0 + 1) / genomecov_data['genomecov'])
+    # Add a null locus that has 0 reads for all individuals
+    # (so just uses coverage)
+    null_locus_counts_est = hubers_est(null_locus_counts)
+
     # Calculate a z scores using median and SD estimates from the current set
     # of samples
-    if control_file == '' or emit_file != '':
-        # Use Huber's M-estimator to calculate median and SD across all samples
-        # for each locus
-        mu_sd_estimates = total_assigned_wide.apply(hubers_est, axis=1)
-        # Where sd is NA, replace with the minimum non-zero sd from all loci
-        min_sd = np.min(mu_sd_estimates['sd'][mu_sd_estimates['sd'] > 0])
-        mu_sd_estimates['sd'].fillna(min_sd, inplace=True)
 
-        # Save median and SD of all loci to file if requested (for use as a
-        # control set for future data sets)
-        if emit_file != '':
-            # Add a null locus that has 0 reads for all individuals
-            # (so just uses coverage)
-            null_locus_counts = np.log2(factor * (0 + 1) / genomecov_data['genomecov'])
-            null_locus_counts_est = hubers_est(null_locus_counts)
+    # Use Huber's M-estimator to calculate median and SD across all samples
+    # for each locus
+    mu_sd_estimates = total_assigned_wide.apply(hubers_est, axis=1)
+    # Where sd is NA, replace with the minimum non-zero sd from all loci
+    min_sd = np.min(mu_sd_estimates['sd'][mu_sd_estimates['sd'] > 0])
+    mu_sd_estimates['sd'].fillna(min_sd, inplace=True)
 
-            # if sd is 0, replace with min_sd #XXX is this sensible?
-            if null_locus_counts_est['sd'] == 0:
-                null_locus_counts_est['sd'] = min_sd
+    # if sd is 0, replace with min_sd #XXX is this sensible?
+    if null_locus_counts_est['sd'] == 0 or np.isnan(null_locus_counts_est['sd']):
+        null_locus_counts_est['sd'] = min_sd
 
-            mu_sd_estimates.loc['null_locus_counts'] = null_locus_counts_est
+    # Save median and SD of all loci to file if requested (for use as a
+    # control set for future data sets)
+    if emit_file != '':
 
-            n = len(total_assigned_wide.columns)
-            mu_sd_estimates['n'] = n
+        mu_sd_estimates.loc['null_locus_counts'] = null_locus_counts_est
 
-            mu_sd_estimates.to_csv(emit_file, sep= '\t')
+        n = len(total_assigned_wide.columns)
+        mu_sd_estimates['n'] = n
+
+        mu_sd_estimates.to_csv(emit_file, sep= '\t')
 
     # Calculate z scores using median and SD estimates per locus from a
     # provided control set
     if control_file != '':
-        # Parse control file
-        control_estimates = pd.read_table(control_file, index_col=0)
+        control_estimates = parse_controls(control_file)
+        control_loci_df = control_estimates.iloc[control_estimates.index != 'null_locus_counts']
+        control_loci = [x for x in control_loci_df.index if x not in locuscov_wide['locus']]
 
-        # Allow for old style column headings, but change to mu and sd.
-        if control_estimates.columns[0] in ['mu', 'median'] and control_estimates.columns[1] in ['sd', 'SD']:
-            colnames = list(control_estimates.columns)
-            colnames[0:2] = ['mu', 'sd']
-            control_estimates.columns = colnames
-        else:
-            raise ValueError(''.join(["The column names in the control file ",
-            "don't look right, expecting columns named median, SD ",
-            "or mu, sd. Column names are ", str(list(control_estimates.columns)),
-            ". Check the file: ", control_file]))
-        
+        # Control file already parsed above   
         # Extract and order just those control estimates appearing in the current data
         mu_sd_estimates = control_estimates.loc[total_assigned_wide.index]
         # Fill NaNs with null_locus_counts values
@@ -289,6 +301,24 @@ def main():
     # calculate z scores
     z = z_score(total_assigned_wide, mu_sd_estimates)
 
+
+    # If a control file is given, effectively add zeros counts at all loci in 
+    # controls but not in the samples. 
+    # These extra rows will dissapear due to a later merge
+    if control_file != '': 
+        sample_names = list(z)
+        null_z = z_score(null_locus_counts, control_estimates.loc['null_locus_counts'])
+        null_z.index = sample_names
+        
+        null_z_df = pd.DataFrame(columns = sample_names, index = control_loci)
+        null_z_df.fillna(null_z, inplace = True)
+        
+        loci_with_counts = z.index
+        z = z.append(null_z_df)
+
+    z = z.iloc[z.index != 'null_locus_counts']
+
+    #z.to_csv('one_z.tsv', sep= '\t', index = True)
     if z.shape[0] == 1:
         ids = z.columns # save index order as data gets sorted
         # Calculate p values based on z scores (one sided)
@@ -302,17 +332,16 @@ def main():
     elif z.shape[0] > 1:
         # Calculate p values based on z scores (one sided)
         pvals = z.apply(lambda z_row: [norm.sf(x) for x in z_row], axis=1) # apply to each row
-
+        
         # Adjust p values using Benjamini/Hochberg method
         adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
-
+        
         # Merge pvals and z scores back into locus_totals
         adj_pvals['locus'] = adj_pvals.index
         pvals_long = pd.melt(adj_pvals, id_vars = 'locus',
                                 value_vars = sample_cols, value_name = 'p_adj')
-
         locus_totals = pd.merge(locus_totals, pvals_long)
-
+        
         z['locus'] = z.index #important to do this only after p values calculated
         z_long = pd.melt(z, id_vars = 'locus',
                         value_vars = sample_cols, value_name = 'outlier')
@@ -320,6 +349,7 @@ def main():
 
     elif z.shape[0] == 0:
         pass #XXX raise error. No input data!
+
 
     # Predict size (in bp) using the ATXN8 linear model (produced from data in
     # decoySTR_cov_sim_ATXN8_AGC.R)
