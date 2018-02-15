@@ -97,7 +97,6 @@ def parse_genomecov(filename):
     genomecov_data = pd.DataFrame({'sample': [sample_id], 'genomecov': [mediancov]})
     return(genomecov_data)
 
-
 def parse_controls(control_file):
     """Parse control file with columns locus, median and standard deviation"""
 
@@ -144,7 +143,7 @@ def z_score(x, df):
 
 def p_adj_bh(x):
     '''Adjust p values using Benjamini/Hochberg method'''
-    return multipletests(x, method='fdr_bh')[1]
+    return multipletests(x, method='fdr_bh', is_sorted = False, returnsorted = False)[1]
 
 def main():
     # Parse command line arguments
@@ -255,6 +254,8 @@ def main():
 
     # Calculate values for if there were zero reads at a locus in all samples
     null_locus_counts = np.log2(factor * (0 + 1) / genomecov_data['genomecov'])
+    sample_names = genomecov_data['sample']
+    null_locus_counts.index = sample_names
     # Add a null locus that has 0 reads for all individuals
     # (so just uses coverage)
     null_locus_counts_est = hubers_est(null_locus_counts)
@@ -264,61 +265,61 @@ def main():
 
     # Use Huber's M-estimator to calculate median and SD across all samples
     # for each locus
-    mu_sd_estimates = total_assigned_wide.apply(hubers_est, axis=1)
+    sample_estimates = total_assigned_wide.apply(hubers_est, axis=1)
     # Where sd is NA, replace with the minimum non-zero sd from all loci
-    min_sd = np.min(mu_sd_estimates['sd'][mu_sd_estimates['sd'] > 0])
-    mu_sd_estimates['sd'].fillna(min_sd, inplace=True)
+    min_sd = np.min(sample_estimates['sd'][sample_estimates['sd'] > 0])
+    sample_estimates['sd'].fillna(min_sd, inplace=True)
 
     # if sd is 0, replace with min_sd #XXX is this sensible?
-    if null_locus_counts_est['sd'] == 0 or np.isnan(null_locus_counts_est['sd']):
+    #if null_locus_counts_est['sd'] == 0 or np.isnan(null_locus_counts_est['sd']):
+    if null_locus_counts_est['sd'] == 0:
         null_locus_counts_est['sd'] = min_sd
 
     # Save median and SD of all loci to file if requested (for use as a
     # control set for future data sets)
     if emit_file != '':
 
-        mu_sd_estimates.loc['null_locus_counts'] = null_locus_counts_est
+        sample_estimates.loc['null_locus_counts'] = null_locus_counts_est
 
         n = len(total_assigned_wide.columns)
-        mu_sd_estimates['n'] = n
+        sample_estimates['n'] = n
 
-        mu_sd_estimates.to_csv(emit_file, sep= '\t')
+        sample_estimates.to_csv(emit_file, sep= '\t')
 
     # Calculate z scores using median and SD estimates per locus from a
     # provided control set
     if control_file != '':
+        # Parse control file
         control_estimates = parse_controls(control_file)
+        # Get a list of all loci in the control file but not the sample data
         control_loci_df = control_estimates.iloc[control_estimates.index != 'null_locus_counts']
-        control_loci = [x for x in control_loci_df.index if x not in locuscov_wide['locus']]
+        control_loci = [x for x in control_loci_df.index if x not in total_assigned_wide.index]
 
-        # Control file already parsed above   
         # Extract and order just those control estimates appearing in the current data
         mu_sd_estimates = control_estimates.loc[total_assigned_wide.index]
         # Fill NaNs with null_locus_counts values
         mu_sd_estimates.fillna(control_estimates.loc['null_locus_counts'],
                                 inplace=True)
+    else:
+        # Extract and order estimates to match the current data
+        mu_sd_estimates = sample_estimates.loc[total_assigned_wide.index]
 
     # calculate z scores
     z = z_score(total_assigned_wide, mu_sd_estimates)
-
 
     # If a control file is given, effectively add zeros counts at all loci in 
     # controls but not in the samples. 
     # These extra rows will dissapear due to a later merge
     if control_file != '': 
-        sample_names = list(z)
-        null_z = z_score(null_locus_counts, control_estimates.loc['null_locus_counts'])
-        null_z.index = sample_names
-        
-        null_z_df = pd.DataFrame(columns = sample_names, index = control_loci)
-        null_z_df.fillna(null_z, inplace = True)
-        
+        # Create a total_assigned_wide as if all loci have zero counts
+        null_total_assigned_wide = pd.DataFrame(columns = sample_names, index = control_loci)
+        null_total_assigned_wide.fillna(null_locus_counts, inplace = True)
+        # Caculate z scores
+        null_z = z_score(null_total_assigned_wide, 
+                            control_estimates.loc[null_total_assigned_wide.index])
         loci_with_counts = z.index
-        z = z.append(null_z_df)
+        z = z.append(null_z)
 
-    z = z.iloc[z.index != 'null_locus_counts']
-
-    #z.to_csv('one_z.tsv', sep= '\t', index = True)
     if z.shape[0] == 1:
         ids = z.columns # save index order as data gets sorted
         # Calculate p values based on z scores (one sided)
@@ -332,10 +333,11 @@ def main():
     elif z.shape[0] > 1:
         # Calculate p values based on z scores (one sided)
         pvals = z.apply(lambda z_row: [norm.sf(x) for x in z_row], axis=1) # apply to each row
-        
+
         # Adjust p values using Benjamini/Hochberg method
         adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
-        
+       
+
         # Merge pvals and z scores back into locus_totals
         adj_pvals['locus'] = adj_pvals.index
         pvals_long = pd.melt(adj_pvals, id_vars = 'locus',
@@ -349,7 +351,6 @@ def main():
 
     elif z.shape[0] == 0:
         pass #XXX raise error. No input data!
-
 
     # Predict size (in bp) using the ATXN8 linear model (produced from data in
     # decoySTR_cov_sim_ATXN8_AGC.R)
