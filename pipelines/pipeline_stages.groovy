@@ -103,12 +103,20 @@ estimate_size = {
     produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
-                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R
+                PATH=$PATH:$STRETCH/tools/bin;
+                $python $STRETCH/scripts/estimateSTR.py
+                    --locus_counts $inputs.locus_counts 
+                    --STR_counts $inputs.STR_counts 
+                    --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
             """
         } else {
             exec """
-                $STRETCH/tools/bin/Rscript $STRETCH/scripts/estimateSTR.R
+                PATH=$PATH:$STRETCH/tools/bin;
+                $python $STRETCH/scripts/estimateSTR.py
+                    --locus_counts $inputs.locus_counts 
+                    --STR_counts $inputs.STR_counts 
+                    --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
                     --control $CONTROL
             """
@@ -125,6 +133,8 @@ median_cov = {
 doc "Calculate the median coverage over the whole genome"
 
     exec """
+        set -o pipefail
+
         $goleft covmed $input.bam | cut -f 1 > $output.median_cov
      """
 }
@@ -138,6 +148,8 @@ median_cov_region = {
 doc "Calculate the median coverage over the target region"
 
     exec """
+        set -o pipefail
+
         $goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
      """
 }
@@ -154,6 +166,8 @@ str_targets = {
 
     //produce(STR_BED[0..-3] + 'slop.bed') {
         exec """
+            set -o pipefail
+
             $bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | $bedtools merge > $output.bed
         """
     //}
@@ -167,12 +181,13 @@ extract_reads_region = {
 
     produce(branch.sample + '_L001_R1.fastq.gz', branch.sample + '_L001_R2.fastq.gz') {
         exec """
+            set -o pipefail
 
             cat <( $samtools view -hu -L $input.bed $input.bam )
                 <( $samtools view -u -f 4 $input.bam ) |
             $samtools collate -Ou -n 128 - $output.prefix |
             $bedtools bamtofastq -i - -fq >(gzip -c > $output1.gz) -fq2 >(gzip -c > $output2.gz)
-        """
+        """, "bwamem"
     }
 }
 
@@ -182,6 +197,8 @@ median_cov_target = {
 doc "Calculate the median coverage over the target region"
 
     exec """
+        set -o pipefail
+
         $goleft covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
      """
 }

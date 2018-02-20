@@ -4,7 +4,7 @@
 ## It will fetched each tool from the web and placed into the tools/ subdirectory.
 ## Paths to all installed tools can be found in the file tools.groovy at the
 ## end of execution of this script. These paths can be changed if a different
-## version of software is required. Note that R must be installed manually
+## version of software is required.
 ##
 
 installdir=$PWD
@@ -127,20 +127,6 @@ done
 
 echo "**********************************************************"
 
-#check that R is installed
-R_path=`which R 2>/dev/null`
-if [ -z $R_path ] ; then
-    echo "R not found!"
-    echo "Please go to http://www.r-project.org/ and follow the installation instructions."
-    echo "Please also install the required R packages."
-else
-    echo "R seems to be available."
-    echo "Make sure you are using the correct version of R and have installed all required packages."
-fi
-echo "R=\"$R_path\"" >> $toolspec
-
-echo "**********************************************************"
-
 #check for reference data
 if [ ! -f $refdir/*dedup.sorted.bed ] ; then
     echo -n "WARNING: reference files could not be found!!!! "
@@ -151,5 +137,3 @@ fi
 
 echo "**********************************************************"
 echo $Final_message
-echo "Please make sure you have installed the required R packages:"
-echo "install.packages(c('optparse','plyr','dplyr','tidyr','reshape2'))"

@@ -2,8 +2,6 @@ language: python
 cache: packages
 install:
 - ./.testing/install-ci.sh
-# Install R packages
-- tools/bin/Rscript --verbose ./.testing/install-packages.R
 # Create working directory
 - mkdir test
 - cp reference-data/SCA8_region.bed test/
