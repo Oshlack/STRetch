@@ -85,9 +85,6 @@ def main():
 
     max_distance = args.dist
 
-    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen', 'count'])
-    outstream.write(out_header + '\n')
-
     #STR_bed = parse_bed(args.bed, position_base=0)
     STR_bed = bt.BedTool(bedfile)
     readlen, count_noCIGAR = detect_readlen(bamfile)
@@ -102,6 +99,12 @@ def main():
     for chrom in bam.references:
         if chrom.startswith('STR-'):
             required_chroms.append(chrom)
+    # Check if any STR- chromosomes
+    if len(required_chroms) == 0:
+       sys.exit('ERROR: There were no reads mapping to chromosomes with names starting with "STR-". Are you sure this data is mapped to a reference genome with STR decoy chromosomes?') 
+
+    out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen', 'count'])
+    outstream.write(out_header + '\n')
 
     for chrom in required_chroms:
         motif = chrom.split('-')[1]
