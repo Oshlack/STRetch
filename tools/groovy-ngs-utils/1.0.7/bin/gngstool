@@ -1,0 +1,35 @@
+#!/bin/bash
+########################################################################
+#
+# Simple Groovy-NGS-Utils runner
+#
+# Runs a specified tool built into GNGS
+# 
+#   gngstool <tool class>
+#
+# Automatically sets up classpath and launches java with tool as main.
+#
+########################################################################
+#
+GNGS=$(dirname `dirname $0`)
+
+GROOVY_BIN=`which groovy`
+
+GROOVY_HOME=`dirname $(dirname $GROOVY_BIN)`
+
+GROOVY_ALL_JAR=`ls $GROOVY_HOME/embeddable/groovy-all* | grep -v indy | head -n 1`
+
+: ${GNGS_MEM:=8g}
+
+cmd=$1;
+shift;
+
+if [ -z "$cmd" ];
+then
+    echo
+    echo "Usage: gngstool <command> <args> ..."
+    echo
+    exit 1
+fi
+
+java -Xmx${GNGS_MEM} -cp $GROOVY_ALL_JAR:$GNGS/.eclipse-build:$GNGS/build/libs/groovy-ngs-utils.jar:$GNGS/groovy-ngs-utils.jar gngs.tools.${cmd} $@
