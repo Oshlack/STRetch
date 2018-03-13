@@ -66,24 +66,58 @@ align_bwa = {
 }
 
 @preserve("*.bam")
-align_bwa_bam = {
+align_bwa_interleaved = {
     doc "Align reads with bwa mem algorithm."
 
     def fastaname = get_fname(REF)
-    produce(branch.sample + '.bam') {
+    from('fastq.gz') produce(sample + '.bam') {
         exec """
             set -o pipefail
 
-            export JAVA_OPTS="-Dsamjdk.reference_fasta=$REF"
+            $bwa mem -p -M -t 20
+                -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
+                $REF $input.fastq.gz |
+            $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
 
-            gngstool ExtractFASTQ -bam ${input[input_type]} |
-                $bwa mem -p -M -t $threads
+        """, "bwamem"
+    }
+}
+
+
+
+@preserve("*.bam")
+align_bwa_bam = {
+
+    doc "Align reads with bwa mem algorithm."
+
+    var input_regions : false
+
+    def regionFlag = ""
+    if(input_regions)
+        regionFlag="-L $input_regions"
+
+    def fastaname = get_fname(REF)
+    produce(branch.sample + '.bam') {
+// export JAVA_OPTS="-Dsamjdk.reference_fasta=$REF"
+
+        // note that in the below we piggyback on the fact that bpipe ships the groovy classes
+        // needed to run groovy code - otherwise would need to include effectivey 2 copies of
+        // groovy!
+        exec """
+            set -o pipefail
+
+            java -Xmx20g -cp $STRETCH/tools/bpipe-0.9.9.2/lib/bpipe.jar:$GNGS_JAR gngs.tools.Pairs 
+                -pad $SLOP -n 6
+                -bam ${input[input_type]} $regionFlag |
+                $bwa mem -p -M -t 20
                     -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
                     $REF - |
                 $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
         """, "bwamem"
     }
 }
+
+// -buffer 512000 $
 
 @preserve("*.bai")
 index_bam = {
@@ -214,7 +248,7 @@ extract_reads_region = {
 @transform('median_cov')
 median_cov_target = {
 
-doc "Calculate the median coverage over the target region"
+    doc "Calculate the median coverage over the target region"
 
     exec """
         set -o pipefail
