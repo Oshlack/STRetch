@@ -1,0 +1,28 @@
+#!/bin/bash
+########################################################################
+#
+# Simple Groovy-NGS-Utils runner
+#
+# Launch a script using
+# 
+#   gngs <script> <args>
+#
+# Automatically sets up classpath and imports classes into default 
+# namespace.
+#
+########################################################################
+#
+GNGS=$(dirname `dirname $0`)
+
+if [ "$1" == "-cp" ];
+then
+   shift
+   EXTRA_CP="$1"
+   echo "Extra classpath=$EXTRA_CP"
+   shift
+fi
+
+
+: ${GNGS_MEM:=8g}
+
+JAVA_OPTS="-Xmx$GNGS_MEM $JAVA_OPTS" groovysh -cp $EXTRA_CP:$GNGS/.eclipse-build:$GNGS/build/libs/groovy-ngs-utils.jar:$GNGS/groovy-ngs-utils.jar -e 'import gngs.*;'  $*
