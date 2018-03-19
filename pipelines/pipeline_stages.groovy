@@ -2,6 +2,9 @@
 
 // Variables e.g. tools are set in pipeline_config.groovy
 
+// Amount to inflate STR regions by for remapping
+SLOP=800
+
 ///////////////////
 // Helper functions
 
@@ -65,40 +68,24 @@ align_bwa = {
     }
 }
 
-@preserve("*.bam")
-align_bwa_interleaved = {
-    doc "Align reads with bwa mem algorithm."
-
-    def fastaname = get_fname(REF)
-    from('fastq.gz') produce(sample + '.bam') {
-        exec """
-            set -o pipefail
-
-            $bwa mem -p -M -t 20
-                -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
-                $REF $input.fastq.gz |
-            $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
-
-        """, "bwamem"
-    }
-}
-
-
 
 @preserve("*.bam")
 align_bwa_bam = {
 
     doc "Align reads with bwa mem algorithm."
 
-    var input_regions : false
+    var input_regions : false,
+        pairThreads : 2
 
     def regionFlag = ""
     if(input_regions)
         regionFlag="-L $input_regions"
 
+
+    def shardFlag = bwa_parallelism > 1 ? "-s $shard,$bwa_parallelism" : ""
+
     def fastaname = get_fname(REF)
-    produce(branch.sample + '.bam') {
-// export JAVA_OPTS="-Dsamjdk.reference_fasta=$REF"
+    produce(([branch.sample] + (bwa_parallelism>1?[shard]:[]) + ['bam']).join('.')) {
 
         // note that in the below we piggyback on the fact that bpipe ships the groovy classes
         // needed to run groovy code - otherwise would need to include effectivey 2 copies of
@@ -106,10 +93,12 @@ align_bwa_bam = {
         exec """
             set -o pipefail
 
-            java -Xmx20g -cp $STRETCH/tools/bpipe-0.9.9.2/lib/bpipe.jar:$GNGS_JAR gngs.tools.Pairs 
+            export JAVA_OPTS="-Dsamjdk.reference_fasta=$REF"
+
+            java -Xmx16g -cp $STRETCH/tools/bpipe-0.9.9.2/lib/bpipe.jar:$GNGS_JAR gngs.tools.Pairs 
                 -pad $SLOP -n 6
-                -bam ${input[input_type]} $regionFlag |
-                $bwa mem -p -M -t 20
+                $regionFlag $shardFlag -bam ${input[input_type]} |
+                $bwa mem -p -M -t ${threads-1}
                     -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
                     $REF - |
                 $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
@@ -117,11 +106,37 @@ align_bwa_bam = {
     }
 }
 
-// -buffer 512000 $
+merge_bams = {
+
+    if(bwa_parallelism == 1) {
+        println "Skipping merge because bwa parallelism not in use"
+        return
+    }
+
+    produce(branch.sample + '.merge.bam') {
+        exec """
+            time java -Xmx2g -jar $STRETCH/tools/picard/2.2.1/picard.jar MergeSamFiles
+                ${inputs.bam.withFlag("INPUT=")}
+                VALIDATION_STRINGENCY=LENIENT
+                ASSUME_SORTED=true
+                CREATE_INDEX=true
+                OUTPUT=$output.bam
+         """, "merge"
+
+/*
+        exec """
+            $samtools merge $output.bam $inputs.bam
+        """
+*/
+
+    }
+
+}
+
 
 @preserve("*.bai")
 index_bam = {
-    transform("bam") to ("bam.bai") {
+    transform("bam") to("bam.bai") {
         exec "$samtools index $input.bam"
     }
     forward input
@@ -216,7 +231,6 @@ str_targets = {
 
     doc "Create bed file of region likely to contain STR reads and their mates"
 
-    SLOP=800
 
     //produce(STR_BED[0..-3] + 'slop.bed') {
         exec """

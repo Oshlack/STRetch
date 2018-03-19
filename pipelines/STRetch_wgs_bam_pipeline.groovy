@@ -12,12 +12,17 @@ input_type='bam'
 inputs "$input_type" : "Please supply one or more $input_type files to process",
        "bed"         : "Please give a BED file defining the target regions to analyse"
 
+bwa_parallelism = 1
+
+shards = 1..bwa_parallelism
+
 run {
     str_targets +
     "%.${input_type}" * [
         set_sample_info +
-//         extract_reads_region +
-        align_bwa_bam + index_bam +
+        shards * [
+            { branch.shard = branch.name } + align_bwa_bam + index_bam 
+        ] + merge_bams +
         median_cov_target +
         STR_coverage +
         STR_locus_counts 
