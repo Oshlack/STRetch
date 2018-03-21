@@ -86,10 +86,11 @@ def main():
 
     #STR_bed = parse_bed(args.bed, position_base=0)
     STR_bed = bt.BedTool(bedfile)
-    readlen, count_noCIGAR = detect_readlen(bamfile)
 
     all_results = []
     for bamfile in bamfiles:
+
+        readlen, count_noCIGAR = detect_readlen(bamfile)
 
         # Read bam
         bam = pysam.Samfile(bamfile, 'rb')
@@ -149,6 +150,18 @@ def main():
                 df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen']]
 
                 all_results.append(df)
+        # Print a warning message in case of reads without a CIGAR string
+        if count_noCIGAR > 0:
+            sys.stderr.write('WARNING: ' + str(count_noCIGAR) + ' read(s) in ' + bamfile + ' file had no CIGAR string.')
+
+        if total == 0:
+            sys.exit('ERROR: there were no reads overlapping the target STR regions. This may indicate a problem with the input file.\n')
+        elif unpaired == total:
+            sys.exit('ERROR: all {0} reads overlapping the target STR regions appear to be unpaired. You may wish to check your bam file is paired-end and correctly formed.\n'.format(total))
+        elif unpaired > 0:
+            sys.stderr.write('WARNING: it appears that {0} of the {1} reads overlapping the target STR regions were unpaired and so no useful data could be obtained from them.\n'.format(unpaired, total))
+
+
 
     # Sum counts from multiple bam files and multiple rows
     if len(all_results) == 1:
@@ -177,7 +190,7 @@ def main():
 
     out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen', 'count'])
     outstream.write(out_header + '\n')
-    summed_total.to_csv(outstream, sep='\t', header=False, index=False)
+    summed.to_csv(outstream, sep='\t', header=False, index=False)
     outstream.close()
 
 if __name__ == '__main__':
