@@ -23,7 +23,7 @@ run {
         shards * [
             { branch.shard = branch.name } + align_bwa_bam + index_bam 
         ] + merge_bams +
-        median_cov_target +
+        median_cov +
         STR_coverage +
         STR_locus_counts 
     ] +

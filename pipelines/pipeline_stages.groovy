@@ -40,6 +40,8 @@ set_sample_info = {
             """
     }
 
+    branch.original_bam = input[input_type]
+
     def info = get_info(input)
     branch.sample = info[0]
     if (info.length >= 2) {
@@ -85,6 +87,7 @@ align_bwa_bam = {
     def shardFlag = bwa_parallelism > 1 ? "-s $shard,$bwa_parallelism" : ""
 
     def fastaname = get_fname(REF)
+
     produce(([branch.sample] + (bwa_parallelism>1?[shard]:[]) + ['bam']).join('.')) {
 
         // note that in the below we piggyback on the fact that bpipe ships the groovy classes
@@ -201,11 +204,13 @@ median_cov = {
 
 doc "Calculate the median coverage over the whole genome"
 
-    exec """
-        set -o pipefail
+    from(original_bam) {
+        exec """
+            set -o pipefail
 
-        $goleft covmed $input.bam | cut -f 1 > $output.median_cov
-     """
+            $goleft covmed $input.bam | cut -f 1 > $output.median_cov
+         """
+    }
 }
 
 /////////////////////////////////////
