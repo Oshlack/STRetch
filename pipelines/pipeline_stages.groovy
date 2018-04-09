@@ -3,7 +3,7 @@
 // Variables e.g. tools are set in pipeline_config.groovy
 
 // Amount to inflate STR regions by for remapping
-SLOP=800
+SLOP=5
 
 ///////////////////
 // Helper functions
@@ -93,10 +93,10 @@ align_bwa_bam = {
         exec """
             set -o pipefail
 
-            export JAVA_OPTS="-Dsamjdk.reference_fasta=$REF"
+            export JAVA_OPTS="-Dsamjdk.reference_fasta=$CRAM_REF"
 
             java -Xmx16g -cp $STRETCH/tools/bpipe-0.9.9.2/lib/bpipe.jar:$GNGS_JAR gngs.tools.Pairs 
-                -pad $SLOP -n 6
+                -pad $SLOP -n 1
                 $regionFlag $shardFlag -bam ${input[input_type]} |
                 $bwa mem -p -M -t ${threads-1}
                     -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
@@ -236,7 +236,7 @@ str_targets = {
         exec """
             set -o pipefail
 
-            $bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | $bedtools merge > $output.bed
+            $bedtools merge -i $input.bed > $output.bed
         """
     //}
 }
