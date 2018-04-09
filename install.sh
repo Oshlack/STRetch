@@ -69,6 +69,11 @@ echo "threads=8" >> $toolspec
 echo >> $toolspec
 echo "// For exome pipeline only ***Edit before running the exome pipeline***" >> $toolspec
 echo "EXOME_TARGET=\"path/to/exome_target_regions.bed\"" >> $toolspec
+echo "// Uncomment the line below to run the STRetch installation test, or specify your own" >> $toolspec
+echo "//EXOME_TARGET=\"SCA8_region.bed\"" >> $toolspec
+echo >> $toolspec
+echo "// For bam pipeline only ***Edit before running if using CRAM input format***" >> $toolspec
+echo "CRAM_REF=\"path/to/reference_genome_used_to_create_cram.fasta\"" >> $toolspec
 echo >> $toolspec
 
 #set STRetch base directory
@@ -87,6 +92,10 @@ for c in $commands ; do
     fi
     echo "$c=\"$c_path\"" >> $toolspec
 done
+
+# Set location of groovy dependancies for gngs read extraction tool
+echo "GNGS_JAR=\"$installdir/tools/groovy-ngs-utils/1.0.7/groovy-ngs-utils.jar\""
+echo >> $toolspec
 
 if [ ! -f $refdir/*dedup.sorted.bed ] ; then
     mkdir -p $refdir
