@@ -7,7 +7,10 @@ load 'pipeline_config.groovy'
 // Load Bpipe pipeline stages
 load 'pipeline_stages.groovy'
 
-input_type='bam'
+if(args.any { it.endsWith('.cram') })
+    input_type = 'cram'
+else
+    input_type='bam'
 
 inputs "$input_type" : "Please supply one or more $input_type files to process",
        "bed"         : "Please give a BED file defining the target regions to analyse"
@@ -15,6 +18,9 @@ inputs "$input_type" : "Please supply one or more $input_type files to process",
 bwa_parallelism = 1
 
 shards = 1..bwa_parallelism
+
+if(input_type == "cram") 
+    requires CRAM_REF: "To use CRAM format, please set the CRAM_REF parameter to specify the reference to used to compress the CRAM file"
 
 run {
     str_targets +

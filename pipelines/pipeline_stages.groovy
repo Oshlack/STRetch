@@ -79,27 +79,35 @@ align_bwa_bam = {
     var input_regions : false,
         pairThreads : 2
 
-    def regionFlag = ""
+    String regionFlag = ""
     if(input_regions)
         regionFlag="-L $input_regions"
 
 
-    def shardFlag = bwa_parallelism > 1 ? "-s $shard,$bwa_parallelism" : ""
+    String shardFlag = bwa_parallelism > 1 ? "-s $shard,$bwa_parallelism" : ""
 
-    def fastaname = get_fname(REF)
+    String fastaname = get_fname(REF)
 
-    produce(([branch.sample] + (bwa_parallelism>1?[shard]:[]) + ['bam']).join('.')) {
 
-        // note that in the below we piggyback on the fact that bpipe ships the groovy classes
-        // needed to run groovy code - otherwise would need to include effectivey 2 copies of
-        // groovy!
+    // :$GNGS_JAR 
+
+    // we construct the output file name by joining the following parts:
+    // - the sample id
+    // - the shard number (only if parallelism in use)
+    // - the file extension '.bam'
+    List outputFileParts = [branch.sample] + 
+                           (bwa_parallelism>1?[shard]:[]) + // empty unless parallelism used
+                           ['bam']
+
+    produce(outputFileParts.join('.')) {
         exec """
             set -o pipefail
 
             export JAVA_OPTS="-Dsamjdk.reference_fasta=$CRAM_REF"
 
-            java -Xmx16g -cp $STRETCH/tools/bpipe-0.9.9.2/lib/bpipe.jar:$GNGS_JAR gngs.tools.Pairs 
-                -pad $SLOP -n 1
+            java -Xmx16g -Dsamjdk.reference_fasta=$CRAM_REF 
+                 -jar $STRETCH/tools/bazam/build/libs/bazam.jar
+                 -pad $SLOP -n 6
                 $regionFlag $shardFlag -bam ${input[input_type]} |
                 $bwa mem -p -M -t ${threads-1}
                     -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
