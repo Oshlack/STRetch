@@ -106,7 +106,7 @@ align_bwa_bam = {
             export JAVA_OPTS="-Dsamjdk.reference_fasta=$CRAM_REF"
 
             java -Xmx16g -Dsamjdk.reference_fasta=$CRAM_REF 
-                 -jar $STRETCH/tools/bazam/build/libs/bazam.jar
+                 -cp $GNGS_JAR:$STRETCH/tools/bazam/build/libs/bazam.jar bazam.Bazam
                  -pad $SLOP -n 6
                 $regionFlag $shardFlag -bam ${input[input_type]} |
                 $bwa mem -p -M -t ${threads-1}
