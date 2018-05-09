@@ -143,7 +143,7 @@ def z_score(x, df):
 
 def p_adj_bh(x):
     '''Adjust p values using Benjamini/Hochberg method'''
-    return multipletests(x, method='fdr_bh', is_sorted = False, returnsorted = False)[1]
+    return multipletests(x, method='fdr_bh', returnsorted = False)[1]
 
 def main():
     # Parse command line arguments
@@ -337,16 +337,15 @@ def main():
         # Adjust p values using Benjamini/Hochberg method
         adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
        
-
         # Merge pvals and z scores back into locus_totals
         adj_pvals['locus'] = adj_pvals.index
         pvals_long = pd.melt(adj_pvals, id_vars = 'locus',
-                                value_vars = sample_cols, value_name = 'p_adj')
+                                value_vars = sample_cols, value_name = 'p_adj', var_name = 'sample')
         locus_totals = pd.merge(locus_totals, pvals_long)
         
         z['locus'] = z.index #important to do this only after p values calculated
         z_long = pd.melt(z, id_vars = 'locus',
-                        value_vars = sample_cols, value_name = 'outlier')
+                        value_vars = sample_cols, value_name = 'outlier', var_name = 'sample')
         locus_totals = pd.merge(locus_totals, z_long)
 
     elif z.shape[0] == 0:
