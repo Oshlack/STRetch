@@ -283,3 +283,39 @@ median_cov_target = {
         $goleft covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
      """
 }
+
+mosdepth_dist = {
+    
+    doc "Calculate cumulative depth distribution from a bam or cram file"
+
+    transform(input_type) to(input.prefix + '.mosdepth.global.dist.txt') {
+
+        if(input_type=="cram") {
+            exec """
+                $STRETCH/tools/bin/mosdepth -n -t $threads
+                -f $CRAM_REF
+                $output.prefix.prefix.prefix.prefix
+                ${input[input_type]}
+            ""","mosdepth"
+        } else {
+            exec """
+                $STRETCH/tools/bin/mosdepth -n -t $threads
+                $output.prefix.prefix.prefix.prefix
+                ${input[input_type]}
+            ""","mosdepth"
+        }
+
+    }
+}
+
+mosdepth_median = {
+    transform('mosdepth.global.dist.txt') to('median_cov') {
+        doc "Calculate the median coverage from mosdepth .dist.txt output"
+    
+        from('.dist.txt') {
+            exec """
+                python $STRETCH/scripts/mosdepth_median.py --out $output.median_cov $input.txt
+            """
+        }
+    }
+}
