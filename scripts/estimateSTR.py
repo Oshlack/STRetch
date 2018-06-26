@@ -296,13 +296,13 @@ def main():
         control_loci = [x for x in control_loci_df.index if x not in total_assigned_wide.index]
 
         # Extract and order just those control estimates appearing in the current data
-        mu_sd_estimates = control_estimates.loc[total_assigned_wide.index]
+        mu_sd_estimates = control_estimates.reindex(total_assigned_wide.index)
         # Fill NaNs with null_locus_counts values
         mu_sd_estimates.fillna(control_estimates.loc['null_locus_counts'],
                                 inplace=True)
     else:
         # Extract and order estimates to match the current data
-        mu_sd_estimates = sample_estimates.loc[total_assigned_wide.index]
+        mu_sd_estimates = sample_estimates.reindex(total_assigned_wide.index)
 
     # calculate z scores
     z = z_score(total_assigned_wide, mu_sd_estimates)
@@ -316,7 +316,7 @@ def main():
         null_total_assigned_wide.fillna(null_locus_counts, inplace = True)
         # Caculate z scores
         null_z = z_score(null_total_assigned_wide, 
-                            control_estimates.loc[null_total_assigned_wide.index])
+                            control_estimates.reindex(null_total_assigned_wide.index))
         loci_with_counts = z.index
         z = z.append(null_z)
 
