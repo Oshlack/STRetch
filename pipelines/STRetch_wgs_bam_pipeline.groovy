@@ -27,11 +27,11 @@ run {
     "%.${input_type}" * [
         set_sample_info + 
         [ 
-            [ mosdepth_dist + mosdepth_median ], 
+            mosdepth_dist + mosdepth_median,
             shards * [
                 { branch.shard = branch.name } + align_bwa_bam + index_bam 
-            ]
-        ] + merge_bams +
+            ] + merge_bams
+        ] +
         STR_coverage +
         STR_locus_counts 
     ] +
