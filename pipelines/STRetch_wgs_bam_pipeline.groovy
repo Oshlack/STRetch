@@ -22,6 +22,9 @@ shards = 1..bwa_parallelism
 if(input_type == "cram") 
     requires CRAM_REF: "To use CRAM format, please set the CRAM_REF parameter in pipeline_config.groovy to specify the reference to used to compress the CRAM file"
 
+// Note: this will be populated by the set_sample_info stage
+samples = Collections.synchronizedList([])
+
 run {
     str_targets +
     "%.${input_type}" * [
