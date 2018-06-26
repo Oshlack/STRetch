@@ -16,13 +16,13 @@ mkdir -p tools/bin
 cd tools
 
 #a list of which programs need to be installed
-commands="bpipe python goleft bedtools bwa samtools"
+commands="bpipe python goleft bedtools bwa samtools mosdepth"
 
 #installation method
 function bpipe_install {
-    wget -O bpipe-0.9.9.2.tar.gz https://github.com/ssadedin/bpipe/releases/download/0.9.9.2/bpipe-0.9.9.2.tar.gz
-    tar -zxvf bpipe-0.9.9.2.tar.gz ; rm bpipe-0.9.9.2.tar.gz
-    ln -s $PWD/bpipe-0.9.9.2/bin/* $PWD/bin/
+    wget -O bpipe-0.9.9.5.tar.gz https://github.com/ssadedin/bpipe/releases/download/0.9.9.5/bpipe-0.9.9.5.tar.gz
+    tar -zxvf bpipe-0.9.9.5.tar.gz ; rm bpipe-0.9.9.5.tar.gz
+    ln -s $PWD/bpipe-0.9.9.5/bin/* $PWD/bin/
 }
 
 # Installs miniconda, Python 3 + required packages, BedTools and goleft
@@ -44,10 +44,15 @@ function bwa_install {
 }
 
 function samtools_install {
-    wget --no-check-certificate https://sourceforge.net/projects/samtools/files/samtools/1.3.1/samtools-1.3.1.tar.bz2
-    tar -jxvf samtools-1.3.1.tar.bz2
-    rm samtools-1.3.1.tar.bz2
-    make prefix=$PWD install -C samtools-1.3.1/
+    wget --no-check-certificate https://github.com/samtools/samtools/releases/download/1.8/samtools-1.8.tar.bz2
+    tar -jxvf samtools-1.8.tar.bz2
+    rm samtools-1.8.tar.bz2
+    make prefix=$PWD install -C samtools-1.8/
+}
+
+function mosdepth_install {
+    wget https://github.com/brentp/mosdepth/releases/download/v0.2.3/mosdepth 
+    ln -s mosdepth $PWD/bin/    
 }
 
 function download_hg19 {
