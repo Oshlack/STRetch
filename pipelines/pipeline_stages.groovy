@@ -184,9 +184,9 @@ STR_locus_counts = {
 }
 
 estimate_size = {
-    List median_covs = samples*.plus('.median_cov')
-    List locus_counts = samples*.plus('.merge.locus_counts')
-    List str_counts = samples*.plus('.merge.STR_counts')
+    List median_covs = samples*.plus('*median_cov')
+    List locus_counts = samples*.plus('*locus_counts')
+    List str_counts = samples*.plus('*STR_counts')
     
     from(median_covs+locus_counts+str_counts) produce("STRs.tsv") {
         if(CONTROL=="") {
