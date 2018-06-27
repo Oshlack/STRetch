@@ -332,7 +332,7 @@ def main():
 
     elif z.shape[0] > 1:
         # Calculate p values based on z scores (one sided)
-        pvals = z.apply(lambda z_row: [norm.sf(x) for x in z_row], axis=1) # apply to each row
+        pvals = z.apply(lambda z_row: [norm.sf(x) for x in z_row], axis=1, result_type='broadcast') # apply to each row
 
         # Adjust p values using Benjamini/Hochberg method
         adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
