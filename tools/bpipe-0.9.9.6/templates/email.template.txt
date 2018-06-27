@@ -1,3 +1,0 @@
-Pipeline finished at $date.
-
-Full path: $full_path

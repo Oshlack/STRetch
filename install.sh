@@ -16,7 +16,7 @@ mkdir -p tools/bin
 cd tools
 
 #a list of which programs need to be installed
-commands="bpipe python goleft bedtools bwa samtools mosdepth"
+commands="bpipe python goleft bedtools bwa samtools mosdepth bazam"
 
 #installation method
 function bpipe_install {
@@ -50,9 +50,12 @@ function samtools_install {
     make prefix=$PWD install -C samtools-1.8/
 }
 
-function mosdepth_install {
-    wget https://github.com/brentp/mosdepth/releases/download/v0.2.3/mosdepth 
-    ln -s mosdepth $PWD/bin/    
+function bazam_install {
+    git clone git@github.com:ssadedin/bazam.git
+    cd bazam
+    ./gradlew clean jar
+    cd ..
+    ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam
 }
 
 function download_hg19 {

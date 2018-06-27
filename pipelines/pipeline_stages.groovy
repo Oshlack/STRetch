@@ -322,7 +322,7 @@ mosdepth_median = {
     
         from('.dist.txt') {
             exec """
-                python $STRETCH/scripts/mosdepth_median.py --out $output.median_cov $input.txt
+                $python $STRETCH/scripts/mosdepth_median.py --out $output.median_cov $input.txt
             """
         }
     }

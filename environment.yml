@@ -16,3 +16,4 @@ dependencies:
 - scikit-learn
 - scipy
 - numpy
+- mosdepth

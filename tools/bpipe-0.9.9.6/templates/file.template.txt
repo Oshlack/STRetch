@@ -1,5 +1,0 @@
-Event ${event} occurred.
-
-Description:
-
-${description}
