@@ -101,10 +101,6 @@ for c in $commands ; do
     echo "$c=\"$c_path\"" >> $toolspec
 done
 
-# Set location of groovy dependancies for gngs read extraction tool
-echo "GNGS_JAR=\"$installdir/tools/groovy-ngs-utils/1.0.7/groovy-ngs-utils.jar\""
-echo >> $toolspec
-
 if [ ! -f $refdir/*dedup.sorted.bed ] ; then
     mkdir -p $refdir
     echo "Downloading reference data"
