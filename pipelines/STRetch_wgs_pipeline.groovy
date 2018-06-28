@@ -7,9 +7,6 @@ load 'pipeline_config.groovy'
 // Load Bpipe pipeline stages
 load 'pipeline_stages.groovy'
 
-// Note: this will be populated by the set_sample_info stage
-samples = Collections.synchronizedList([])
-
 run {
     '%_R*.fastq.gz' * [
         set_sample_info +

@@ -45,9 +45,6 @@ set_sample_info = {
     def info = get_info(input)
     branch.sample = info[0]
 
-    // Add to global list of samples processed
-    samples.add(branch.sample)
-
     if (info.length >= 2) {
         branch.lane = info[1]
     } else {
@@ -184,11 +181,8 @@ STR_locus_counts = {
 }
 
 estimate_size = {
-    List median_covs = samples*.plus('*median_cov')
-    List locus_counts = samples*.plus('*locus_counts')
-    List str_counts = samples*.plus('*STR_counts')
     
-    from(median_covs+locus_counts+str_counts) produce("STRs.tsv") {
+    produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
                 PATH=$PATH:$STRETCH/tools/bin;

@@ -22,8 +22,9 @@ shards = 1..bwa_parallelism
 if(input_type == "cram") 
     requires CRAM_REF: "To use CRAM format, please set the CRAM_REF parameter in pipeline_config.groovy to specify the reference to used to compress the CRAM file"
 
-// Note: this will be populated by the set_sample_info stage
-samples = Collections.synchronizedList([])
+init_shard = {
+    branch.shard = branch.name
+}
 
 run {
     str_targets +
@@ -32,7 +33,7 @@ run {
         [ 
             mosdepth_dist + mosdepth_median,
             shards * [
-                { branch.shard = branch.name } + align_bwa_bam + index_bam 
+                init_shard + align_bwa_bam + index_bam 
             ] + merge_bams
         ] +
         STR_coverage +
