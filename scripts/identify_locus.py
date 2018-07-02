@@ -14,7 +14,7 @@ import os
 import random
 import string
 from decoy_STR import normalise_str
-import sys #XXX Just for testing
+import sys
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -134,14 +134,12 @@ def main():
             motif_bed = bt.BedTool(all_positions).sort()
             # Merge all the intervals, then count how many of the original intervals overlap the merged ones (4th column)
             motif_coverage = motif_bed.merge(stream=True).coverage(b=motif_bed, counts=True)
-
             tmp_bed = 'tmp-' + randomletters(8) + '.bed' #create temporary file for bedtools to write to and pandas to read since streams don't seem to work
             closest_STR = motif_coverage.closest(STR_bed, d=True, stream=True).saveas(tmp_bed)
             colnames = ['chr', 'start', 'stop', 'count', 'STR_chr', 'STR_start',
             'STR_stop', 'motif', 'reflen', 'distance']
             df = pd.read_csv(tmp_bed, sep='\t', header=None, names=colnames)
             os.remove(tmp_bed) #delete temporary file
-
             # Filter out loci that are too far away
             df = df.loc[df['distance'] <= max_distance, :]
             df['motif'] = df['motif'].map(normalise_str) # Normalise the STR motif to enable comparisons
@@ -149,8 +147,8 @@ def main():
             df = df.loc[df['motif'] == normalise_str(motif), :]
             df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen']]
             summed = df.groupby(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen'], as_index=False).aggregate(np.sum)
-            summed.to_csv(outstream, sep='\t', header=False, index=False)
-
+            outstring = summed.to_csv(sep='\t', header=False, index=False)
+            outstream.write(outstring)
     outstream.close()
 
     # Print a warning message in case of reads without a CIGAR string
