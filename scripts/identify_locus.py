@@ -190,7 +190,8 @@ def main():
 
     out_header = '\t'.join(['STR_chr', 'STR_start', 'STR_stop', 'motif', 'reflen', 'count'])
     outstream.write(out_header + '\n')
-    summed.to_csv(outstream, sep='\t', header=False, index=False)
+    outstring = summed.to_csv(sep='\t', header=False, index=False)
+    outstream.write(outstring)
     outstream.close()
 
 if __name__ == '__main__':
