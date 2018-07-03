@@ -27,7 +27,6 @@ init_shard = {
 }
 
 run {
-    str_targets +
     "%.${input_type}" * [
         set_sample_info + 
         [ 
