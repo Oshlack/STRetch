@@ -4,7 +4,7 @@
 
 If using STRetch, please cite:
 
-Dashnow H, Lek M, Phipson B, Halman A, Davis M, Lamont P, et al. STRetch: detecting and discovering pathogenic short tandem repeats expansions. bioRxiv. 2017. http://biorxiv.org/content/early/2017/07/04/159228.abstract.
+Dashnow H, Lek M, Phipson B, Halman A, Sadedin S, Lonsdale A, et al. STRetch: detecting and discovering pathogenic short tandem repeats expansions. bioRxiv. 2017. https://doi.org/10.1101/159228.
 
 # STRetch
 
