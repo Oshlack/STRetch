@@ -53,6 +53,7 @@ function samtools_install {
 function bazam_install {
     git clone git@github.com:ssadedin/bazam.git
     cd bazam
+    git reset --hard 72b0e90be18bf8341a4b0368d4a7abf806c631bc
     ./gradlew clean jar
     cd ..
     ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam
