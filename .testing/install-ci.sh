@@ -16,7 +16,7 @@ mkdir -p tools/bin
 cd tools
 
 #a list of which programs need to be installed
-commands="bpipe python goleft bedtools bwa samtools mosdepth"
+commands="bpipe python goleft bedtools bwa samtools mosdepth bazam picard"
 
 #installation method
 function bpipe_install {
@@ -50,9 +50,18 @@ function samtools_install {
     make prefix=$PWD install -C samtools-1.8/
 }
 
-function mosdepth_install {
-    wget https://github.com/brentp/mosdepth/releases/download/v0.2.3/mosdepth 
-    ln -s mosdepth $PWD/bin/    
+function bazam_install {
+    git clone git@github.com:ssadedin/bazam.git
+    cd bazam
+    git reset --hard 72b0e90be18bf8341a4b0368d4a7abf806c631bc
+    ./gradlew clean jar
+    cd ..
+    ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam
+}
+
+function picard_install {
+    wget https://github.com/broadinstitute/picard/releases/download/2.18.9/picard.jar
+    ln -s $PWD/picard.jar $PWD/bin/picard
 }
 
 function download {
@@ -101,10 +110,6 @@ for c in $commands ; do
     echo "$c=\"$c_path\"" >> $toolspec
 done
 
-# Set location of groovy dependancies for gngs read extraction tool
-echo "GNGS_JAR=\"$installdir/tools/groovy-ngs-utils/1.0.7/groovy-ngs-utils.jar\""
-echo >> $toolspec
-
 if [ ! -f $refdir/*dedup.sorted.bed ] ; then
     mkdir -p $refdir
     echo "Downloading reference and test data"
@@ -124,7 +129,7 @@ echo "DECOY_BED=\"$refdir/STRdecoys.sorted.bed\"" >> $toolspec
 echo "// By default, uses other samples in the same batch as a control" >> $toolspec
 echo "CONTROL=\"\"" >> $toolspec
 echo "// Uncomment the line below to use a set of WGS samples as controls, or specify your own" >> $toolspec
-echo "CONTROL=\"$refdir/PCRfreeWGS.controls.tsv\"" >> $toolspec
+echo "CONTROL=\"$refdir/PCRfreeWGS_143_controls.tsv\"" >> $toolspec
 echo >> $toolspec
 
 
