@@ -124,7 +124,7 @@ echo "DECOY_BED=\"$refdir/STRdecoys.sorted.bed\"" >> $toolspec
 echo "// By default, uses other samples in the same batch as a control" >> $toolspec
 echo "CONTROL=\"\"" >> $toolspec
 echo "// Uncomment the line below to use a set of WGS samples as controls, or specify your own" >> $toolspec
-echo "//CONTROL=\"$refdir/PCRfreeWGS.controls.tsv\"" >> $toolspec
+echo "//CONTROL=\"$refdir/PCRfreeWGS_143_controls.tsv\"" >> $toolspec
 echo >> $toolspec
 
 
