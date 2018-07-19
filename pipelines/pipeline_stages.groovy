@@ -104,8 +104,6 @@ align_bwa_bam = {
         exec """
             set -o pipefail
 
-            export JAVA_OPTS="-Dsamjdk.reference_fasta=$CRAM_REF"
-
             java -Xmx16g -Dsamjdk.reference_fasta=$CRAM_REF 
                  -jar $STRETCH/tools/bazam/build/libs/bazam.jar
                  -pad $SLOP -n 6
