@@ -16,7 +16,7 @@ mkdir -p tools/bin
 cd tools
 
 #a list of which programs need to be installed
-commands="bpipe python goleft bedtools bwa samtools mosdepth bazam"
+commands="bpipe python goleft bedtools bwa samtools mosdepth bazam picard"
 
 #installation method
 function bpipe_install {
@@ -56,6 +56,11 @@ function bazam_install {
     ./gradlew clean jar
     cd ..
     ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam
+}
+
+function picard_install {
+    wget https://github.com/broadinstitute/picard/releases/download/2.18.9/picard.jar
+    ln -s $PWD/picard.jar $PWD/bin/picard
 }
 
 function download_hg19 {

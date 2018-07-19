@@ -127,7 +127,7 @@ merge_bams = {
 
     produce(branch.sample + '.merge.bam') {
         exec """
-            time java -Xmx2g -jar $STRETCH/tools/picard/2.2.1/picard.jar MergeSamFiles
+            time java -Xmx2g -jar $STRETCH/tools/picard.jar MergeSamFiles
                 ${inputs.bam.withFlag("INPUT=")}
                 VALIDATION_STRINGENCY=LENIENT
                 ASSUME_SORTED=true
