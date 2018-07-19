@@ -13,7 +13,6 @@ else
     input_type='bam'
 
 inputs "$input_type" : "Please supply one or more $input_type files to process",
-       "bed"         : "Please give a BED file defining the target regions to analyse"
 
 bwa_parallelism = 1
 
