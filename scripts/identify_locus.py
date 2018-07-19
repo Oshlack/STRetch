@@ -14,7 +14,7 @@ import os
 import random
 import string
 from decoy_STR import normalise_str
-import sys #XXX Just for testing
+import sys
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
