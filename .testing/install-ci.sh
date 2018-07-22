@@ -16,13 +16,13 @@ mkdir -p tools/bin
 cd tools
 
 #a list of which programs need to be installed
-commands="bpipe python goleft bedtools bwa samtools"
+commands="bpipe python goleft bedtools bwa samtools mosdepth bazam picard"
 
 #installation method
 function bpipe_install {
-    wget -O bpipe-0.9.9.2.tar.gz https://github.com/ssadedin/bpipe/releases/download/0.9.9.2/bpipe-0.9.9.2.tar.gz
-    tar -zxvf bpipe-0.9.9.2.tar.gz ; rm bpipe-0.9.9.2.tar.gz
-    ln -s $PWD/bpipe-0.9.9.2/bin/* $PWD/bin/
+    wget -O bpipe-0.9.9.5.tar.gz https://github.com/ssadedin/bpipe/releases/download/0.9.9.5/bpipe-0.9.9.5.tar.gz
+    tar -zxvf bpipe-0.9.9.5.tar.gz ; rm bpipe-0.9.9.5.tar.gz
+    ln -s $PWD/bpipe-0.9.9.5/bin/* $PWD/bin/
 }
 
 # Installs miniconda, Python 3 + required packages, BedTools and goleft
@@ -44,10 +44,24 @@ function bwa_install {
 }
 
 function samtools_install {
-    wget --no-check-certificate https://sourceforge.net/projects/samtools/files/samtools/1.3.1/samtools-1.3.1.tar.bz2
-    tar -jxvf samtools-1.3.1.tar.bz2
-    rm samtools-1.3.1.tar.bz2
-    make prefix=$PWD install -C samtools-1.3.1/
+    wget --no-check-certificate https://github.com/samtools/samtools/releases/download/1.8/samtools-1.8.tar.bz2
+    tar -jxvf samtools-1.8.tar.bz2
+    rm samtools-1.8.tar.bz2
+    make prefix=$PWD install -C samtools-1.8/
+}
+
+function bazam_install {
+    git clone git@github.com:ssadedin/bazam.git
+    cd bazam
+    git reset --hard 72b0e90be18bf8341a4b0368d4a7abf806c631bc
+    ./gradlew clean jar
+    cd ..
+    ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam
+}
+
+function picard_install {
+    wget https://github.com/broadinstitute/picard/releases/download/2.18.9/picard.jar
+    ln -s $PWD/picard.jar $PWD/bin/picard
 }
 
 function download {
@@ -71,7 +85,12 @@ echo "// Number of threads to use for BWA" >> $toolspec
 echo "threads=8" >> $toolspec
 echo >> $toolspec
 echo "// For exome pipeline only ***Edit before running the exome pipeline***" >> $toolspec
+echo "EXOME_TARGET=\"path/to/exome_target_regions.bed\"" >> $toolspec
+echo "// Uncomment the line below to run the STRetch installation test, or specify your own" >> $toolspec
 echo "EXOME_TARGET=\"SCA8_region.bed\"" >> $toolspec
+echo >> $toolspec
+echo "// For bam pipeline only ***Edit before running if using CRAM input format***" >> $toolspec
+echo "CRAM_REF=\"path/to/reference_genome_used_to_create_cram.fasta\"" >> $toolspec
 echo >> $toolspec
 
 #set STRetch base directory
@@ -103,13 +122,14 @@ echo "refdir=\"$refdir\"" >> $toolspec
 
 echo >> $toolspec
 echo "// Decoy reference assumed to have matching .genome file in the same directory" >> $toolspec
+echo "REF=\"$refdir/hg19.STRdecoys.sorted.fasta\"" >> $toolspec
 echo "REF=\"$refdir/hg19.chr13.STRdecoys.sorted.fasta\"" >> $toolspec
 echo "STR_BED=\"$refdir/hg19.simpleRepeat_period1-6_dedup.sorted.bed\"" >> $toolspec
 echo "DECOY_BED=\"$refdir/STRdecoys.sorted.bed\"" >> $toolspec
 echo "// By default, uses other samples in the same batch as a control" >> $toolspec
 echo "CONTROL=\"\"" >> $toolspec
 echo "// Uncomment the line below to use a set of WGS samples as controls, or specify your own" >> $toolspec
-echo "CONTROL=\"$refdir/PCRfreeWGS.controls.tsv\"" >> $toolspec
+echo "//CONTROL=\"$refdir/PCRfreeWGS_143_controls.tsv\"" >> $toolspec
 echo >> $toolspec
 
 

@@ -1,8 +1,10 @@
-use="R-3.3 Samtools BWA BEDTools"
+use="Java-1.8"
 
 commands {
     bwamem {
         memory="32g"
+        threads=8
+        walltime="168:00:00"
     }
 
 

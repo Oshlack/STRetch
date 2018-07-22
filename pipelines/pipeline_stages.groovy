@@ -2,6 +2,9 @@
 
 // Variables e.g. tools are set in pipeline_config.groovy
 
+// Amount to inflate STR regions by for remapping
+SLOP=5
+
 ///////////////////
 // Helper functions
 
@@ -37,8 +40,11 @@ set_sample_info = {
             """
     }
 
+    branch.original_bam = input[input_type]
+
     def info = get_info(input)
     branch.sample = info[0]
+
     if (info.length >= 2) {
         branch.lane = info[1]
     } else {
@@ -65,9 +71,82 @@ align_bwa = {
     }
 }
 
+
+@preserve("*.bam")
+align_bwa_bam = {
+
+    doc "Align reads with bwa mem algorithm."
+
+    var input_regions : false,
+        pairThreads : 2
+
+    String regionFlag = ""
+    if(input_regions)
+        regionFlag="-L $input_regions"
+
+
+    String shardFlag = bwa_parallelism > 1 ? "-s $shard,$bwa_parallelism" : ""
+
+    String fastaname = get_fname(REF)
+
+
+    // :$GNGS_JAR 
+
+    // we construct the output file name by joining the following parts:
+    // - the sample id
+    // - the shard number (only if parallelism in use)
+    // - the file extension '.bam'
+    List outputFileParts = [branch.sample] + 
+                           (bwa_parallelism>1?[shard]:[]) + // empty unless parallelism used
+                           ['bam']
+
+    produce(outputFileParts.join('.')) {
+        exec """
+            set -o pipefail
+
+            java -Xmx16g -Dsamjdk.reference_fasta=$CRAM_REF 
+                 -jar $STRETCH/tools/bazam/build/libs/bazam.jar
+                 -pad $SLOP -n 6
+                $regionFlag $shardFlag -bam ${input[input_type]} |
+                $bwa mem -p -M -t ${threads-1}
+                    -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
+                    $REF - |
+                $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
+        """, "bwamem"
+    }
+}
+
+merge_bams = {
+
+    if(bwa_parallelism == 1) {
+        println "Skipping merge because bwa parallelism not in use"
+        return
+    }
+
+    produce(branch.sample + '.merge.bam') {
+        exec """
+            time java -Xmx2g -jar $STRETCH/tools/picard.jar MergeSamFiles
+                ${inputs.bam.withFlag("INPUT=")}
+                VALIDATION_STRINGENCY=LENIENT
+                ASSUME_SORTED=true
+                CREATE_INDEX=true
+                OUTPUT=$output.bam
+         """, "merge"
+
+/*
+        exec """
+            $samtools merge $output.bam $inputs.bam
+        """
+*/
+
+    }
+
+}
+
+
 @preserve("*.bai")
 index_bam = {
-    transform("bam") to ("bam.bai") {
+    transform("bam") to("bam.bai") {
         exec "$samtools index $input.bam"
     }
     forward input
@@ -100,6 +179,7 @@ STR_locus_counts = {
 }
 
 estimate_size = {
+    
     produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
@@ -136,7 +216,7 @@ doc "Calculate the median coverage over the whole genome"
         set -o pipefail
 
         $goleft covmed $input.bam | cut -f 1 > $output.median_cov
-     """
+    """
 }
 
 /////////////////////////////////////
@@ -162,13 +242,12 @@ str_targets = {
 
     doc "Create bed file of region likely to contain STR reads and their mates"
 
-    SLOP=800
 
     //produce(STR_BED[0..-3] + 'slop.bed') {
         exec """
             set -o pipefail
 
-            $bedtools slop -b $SLOP -i $input.bed -g ${REF}.genome | $bedtools merge > $output.bed
+            $bedtools merge -i $input.bed > $output.bed
         """
     //}
 }
@@ -194,11 +273,47 @@ extract_reads_region = {
 @transform('median_cov')
 median_cov_target = {
 
-doc "Calculate the median coverage over the target region"
+    doc "Calculate the median coverage over the target region"
 
     exec """
         set -o pipefail
 
         $goleft covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
      """
+}
+
+mosdepth_dist = {
+    
+    doc "Calculate cumulative depth distribution from a bam or cram file"
+
+    transform(input_type) to(input.prefix + '.mosdepth.global.dist.txt') {
+
+        if(input_type=="cram") {
+            exec """
+                $STRETCH/tools/bin/mosdepth -n -t $threads
+                -f $CRAM_REF
+                $output.prefix.prefix.prefix.prefix
+                ${input[input_type]}
+            ""","mosdepth"
+        } else {
+            exec """
+                $STRETCH/tools/bin/mosdepth -n -t $threads
+                $output.prefix.prefix.prefix.prefix
+                ${input[input_type]}
+            ""","mosdepth"
+        }
+
+    }
+}
+
+mosdepth_median = {
+    transform('mosdepth.global.dist.txt') to('median_cov') {
+        doc "Calculate the median coverage from mosdepth .dist.txt output"
+    
+        from('.dist.txt') {
+            exec """
+                $python $STRETCH/scripts/mosdepth_median.py --out $output.median_cov $input.txt
+            """
+        }
+    }
 }
