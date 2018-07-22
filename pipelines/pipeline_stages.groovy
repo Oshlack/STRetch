@@ -212,13 +212,11 @@ median_cov = {
 
 doc "Calculate the median coverage over the whole genome"
 
-    from(original_bam) {
-        exec """
-            set -o pipefail
+    exec """
+        set -o pipefail
 
-            $goleft covmed $input.bam | cut -f 1 > $output.median_cov
-         """
-    }
+        $goleft covmed $input.bam | cut -f 1 > $output.median_cov
+    """
 }
 
 /////////////////////////////////////
