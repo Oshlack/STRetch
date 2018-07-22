@@ -12,7 +12,7 @@ if(args.any { it.endsWith('.cram') })
 else
     input_type='bam'
 
-inputs "$input_type" : "Please supply one or more $input_type files to process",
+inputs "$input_type" : "Please supply one or more $input_type files to process"
 
 bwa_parallelism = 1
 
