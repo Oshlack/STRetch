@@ -1,15 +1,15 @@
-walltime="02:00:00"
-modules="R bwa samtools bedtools"
+walltime="04:00:00"
+modules="java"
 
 commands {
     bwamem {
-        walltime="24:00:00"
+        walltime="48:00:00"
         procs=8
+        memory=32
     }
 
 
     bedtools {
-        walltime="04:00:00"
         memory=8
     }
 }
