@@ -107,7 +107,7 @@ for c in $commands ; do
     echo "$c=\"$c_path\"" >> $toolspec
 done
 
-if [ ! -f $refdir/*dedup.sorted.bed ] ; then
+if [ ! -f $refdir/hg19.PCRfreeWGS_143_STRetch_controls.tsv ] ; then
     mkdir -p $refdir
     echo "Downloading reference data"
     download_hg19
@@ -125,7 +125,7 @@ echo "DECOY_BED=\"$refdir/STRdecoys.sorted.bed\"" >> $toolspec
 echo "// By default, uses other samples in the same batch as a control" >> $toolspec
 echo "CONTROL=\"\"" >> $toolspec
 echo "// Uncomment the line below to use a set of WGS samples as controls, or specify your own" >> $toolspec
-echo "//CONTROL=\"$refdir/PCRfreeWGS_143_controls.tsv\"" >> $toolspec
+echo "//CONTROL=\"$refdir/hg19.PCRfreeWGS_143_STRetch_controls.tsv\"" >> $toolspec
 echo >> $toolspec
 
 
