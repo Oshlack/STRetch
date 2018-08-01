@@ -46,8 +46,26 @@ set_sample_info = {
     branch.sample = info[0]
 
     if (info.length >= 2) {
-        branch.lane = info[1]
+        branch.lane = info[-2]
     } else {
+        branch.lane = 'L001'
+    }
+
+    branch.flowcell = 'NA'
+    branch.library = 'NA'
+ 
+}
+
+set_fastq_info = {
+    def info = get_info(input)
+
+    if (info.length >= 5) {
+        branch.flowcell = info[-4]
+        branch.library = info[-3]
+        branch.lane = info[-2]
+    } else {
+        branch.flowcell = 'NA'
+        branch.library = 'NA'
         branch.lane = 'L001'
     }
 
@@ -63,7 +81,7 @@ align_bwa = {
             set -o pipefail
 
             $bwa mem -M -t $threads
-            -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
+            -R "@RG\\tID:${flowcell}.${lane}\\tPL:$PLATFORM\\tPU:${flowcell}.${lane}.${library}\\tLB:${library}\\tSM:${sample}"
             $REF
             $inputs |
             $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
@@ -109,7 +127,7 @@ align_bwa_bam = {
                  -pad $SLOP -n 6
                 $regionFlag $shardFlag -bam ${input[input_type]} |
                 $bwa mem -p -M -t ${threads-1}
-                    -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
+                    -R "@RG\\tID:${flowcell}.${lane}\\tPL:$PLATFORM\\tPU:${flowcell}.${lane}.${library}\\tLB:${library}\\tSM:${sample}"
                     $REF - |
                 $samtools view -bSuh - | $samtools sort -o $output.bam -T $output.bam.prefix
         """, "bwamem"

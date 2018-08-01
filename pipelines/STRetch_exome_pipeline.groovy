@@ -11,9 +11,13 @@ load 'pipeline_stages.groovy'
 // Run pipeline
 
 run {
-    '%_R*.fastq.gz' * [
+
+    ~'(.*?)_.*_R[12].fastq.gz' * [
         set_sample_info +
-        align_bwa + index_bam +
+        ~'.*?_(.*)_R[12].fastq.gz' * [
+            set_fastq_info +
+            align_bwa + index_bam
+        ] + merge_bams +
         median_cov_region +
         STR_coverage +
         STR_locus_counts
