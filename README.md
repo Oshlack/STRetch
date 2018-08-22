@@ -1,14 +1,14 @@
 [![Build Status](https://travis-ci.org/hdashnow/STRetch-paper.svg?branch=ci)](https://travis-ci.org/hdashnow/STRetch-paper)
 
-**Update:** the STRetch paper is now available!
+**Update:** the STRetch paper is now published!
 
 If using STRetch, please cite:
 
-Dashnow H, Lek M, Phipson B, Halman A, Sadedin S, Lonsdale A, et al. STRetch: detecting and discovering pathogenic short tandem repeats expansions. bioRxiv. 2017. https://doi.org/10.1101/159228.
+Dashnow, Harriet, Monkol Lek, Belinda Phipson, Andreas Halman, Simon Sadedin, Andrew Lonsdale, Mark Davis, et al. 2018. “STRetch: Detecting and Discovering Pathogenic Short Tandem Repeat Expansions.” Genome Biology 19 (1): 121. [https://doi.org/10.1186/s13059-018-1505-2](https://doi.org/10.1186/s13059-018-1505-2)
 
 # STRetch
 
-Method for detecting pathogenic STR expansions from next-gen sequencing data.
+Method for detecting short tandem repeat expansions from short-read sequencing data.
 
 STRetch requires paired end reads to work. It is primarily intended for use on
 whole genome sequencing data, but can also be run on exome or other targeted
