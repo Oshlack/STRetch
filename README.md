@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/hdashnow/STRetch-paper.svg?branch=ci)](https://travis-ci.org/hdashnow/STRetch-paper)
+[![Build Status](https://travis-ci.org/Oshlack/STRetch.svg?branch=master)](https://travis-ci.org/Oshlack/STRetch)
 
 **Update:** the STRetch paper is now published!
 
