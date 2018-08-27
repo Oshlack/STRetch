@@ -76,7 +76,7 @@ align_bwa = {
     doc "Align reads with bwa mem algorithm."
 
     def fastaname = get_fname(REF)
-    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
+    from('fastq.gz', 'fastq.gz') produce(branch.name + '.STRdecoy.bam') {
         exec """
             set -o pipefail
 
