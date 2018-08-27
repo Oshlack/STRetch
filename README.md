@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/Oshlack/STRetch.svg?branch=master)](https://travis-ci.org/Oshlack/STRetch)
 
+## [STRetch user guide](https://github.com/Oshlack/STRetch/wiki)
+
 **Update:** the STRetch paper is now published!
 
 If using STRetch, please cite:
@@ -14,5 +16,5 @@ STRetch requires paired end reads to work. It is primarily intended for use on
 whole genome sequencing data, but can also be run on exome or other targeted
 sequencing data, although size estimates should be interpreted with caution.
 
-Please see the [STRetch wiki](https://github.com/Oshlack/STRetch/wiki)
+Please see the [STRetch user guide](https://github.com/Oshlack/STRetch/wiki)
 for installation and usage instructions.
