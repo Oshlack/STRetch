@@ -16,7 +16,8 @@ mkdir -p tools/bin
 cd tools
 
 #a list of which programs need to be installed
-commands="bpipe python goleft bedtools bwa samtools mosdepth bazam picard"
+commands="bpipe python goleft bedtools bwa samtools mosdepth"
+jarfiles="bazam picard"
 
 #installation method
 function bpipe_install {
@@ -51,17 +52,17 @@ function samtools_install {
 }
 
 function bazam_install {
-    git clone git@github.com:ssadedin/bazam.git
+    git clone https://github.com/ssadedin/bazam.git
     cd bazam
-    git reset --hard 72b0e90be18bf8341a4b0368d4a7abf806c631bc
+    git submodule update --init --recursive
     ./gradlew clean jar
     cd ..
-    ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam
+    ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam.jar
 }
 
 function picard_install {
     wget https://github.com/broadinstitute/picard/releases/download/2.18.9/picard.jar
-    ln -s $PWD/picard.jar $PWD/bin/picard
+    ln -s $PWD/picard.jar $PWD/bin/picard.jar
 }
 
 function download_hg19 {
@@ -107,6 +108,15 @@ for c in $commands ; do
     echo "$c=\"$c_path\"" >> $toolspec
 done
 
+for j in $jarfiles ; do
+    if [ ! -f $PWD/bin/$j.jar ] ; then
+	echo "$j not found, fetching it"
+	${j}_install
+    fi
+    echo "$j=\"$PWD/bin/${j}.jar\"" >> $toolspec
+done
+
+
 if [ ! -f $refdir/hg19.PCRfreeWGS_143_STRetch_controls.tsv ] ; then
     mkdir -p $refdir
     echo "Downloading reference data"
@@ -143,6 +153,18 @@ for c in $commands ; do
         echo "$c looks like it has been installed"
     fi
 done
+
+for j in $jarfiles ; do
+    if [ ! -f $PWD/bin/$j.jar ] ; then
+        echo -n "WARNING: $j could not be found!!!! "
+	echo "You will need to download and install $j manually, then add its path to $toolspec"
+	Final_message="WARNING: One or more command did not install successfully. See warning messages above. You will need to correct this before running STRetch."
+    else
+        echo "$j looks like it has been installed"
+    fi
+done
+
+
 
 echo "**********************************************************"
 
