@@ -65,7 +65,7 @@ function picard_install {
 }
 
 function download {
-    wget --no-check-certificate -O $refdir/reference-data.zip https://ndownloader.figshare.com/articles/5353399?private_link=be9bde235448e937e468
+    wget --no-check-certificate -O $refdir/reference-data.zip https://ndownloader.figshare.com/articles/5353399/versions/1
     unzip $refdir/reference-data.zip -d $refdir
     rm $refdir/reference-data.zip
 
