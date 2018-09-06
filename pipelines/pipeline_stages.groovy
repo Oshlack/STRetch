@@ -4,6 +4,8 @@
 
 // Amount to inflate STR regions by for remapping
 SLOP=5
+// Save key intermediate and final files to a different directory
+savedir = "keep"
 
 ///////////////////
 // Helper functions
@@ -55,6 +57,7 @@ set_sample_info = {
 
 @preserve("*.bam")
 align_bwa = {
+
     doc "Align reads with bwa mem algorithm."
 
     def fastaname = get_fname(REF)
@@ -153,6 +156,9 @@ index_bam = {
 }
 
 STR_coverage = {
+
+    output.dir = savedir
+
     transform("bam") to ("STR_counts") {
         exec """
             $bedtools coverage -counts
@@ -165,6 +171,9 @@ STR_coverage = {
 }
 
 STR_locus_counts = {
+    
+    output.dir = savedir
+
     transform("bam") to ("locus_counts") {
         exec """
             STRPATH=$PATH;
@@ -180,6 +189,8 @@ STR_locus_counts = {
 
 estimate_size = {
     
+    output.dir = savedir
+
     produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
@@ -189,6 +200,7 @@ estimate_size = {
                     --STR_counts $inputs.STR_counts 
                     --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
+                    --out $output.dir/
             """
         } else {
             exec """
@@ -199,6 +211,7 @@ estimate_size = {
                     --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
                     --control $CONTROL
+                    --out $output.dir/
             """
         }
     }
@@ -210,7 +223,9 @@ estimate_size = {
 @transform('median_cov')
 median_cov = {
 
-doc "Calculate the median coverage over the whole genome"
+    doc "Calculate the median coverage over the whole genome"
+
+    output.dir = savedir
 
     exec """
         set -o pipefail
@@ -225,7 +240,9 @@ doc "Calculate the median coverage over the whole genome"
 @transform('median_cov')
 median_cov_region = {
 
-doc "Calculate the median coverage over the target region"
+    doc "Calculate the median coverage over the target region"
+
+    output.dir = savedir
 
     exec """
         set -o pipefail
@@ -241,7 +258,6 @@ doc "Calculate the median coverage over the target region"
 str_targets = {
 
     doc "Create bed file of region likely to contain STR reads and their mates"
-
 
     //produce(STR_BED[0..-3] + 'slop.bed') {
         exec """
@@ -275,6 +291,8 @@ median_cov_target = {
 
     doc "Calculate the median coverage over the target region"
 
+    output.dir = savedir
+
     exec """
         set -o pipefail
 
@@ -307,13 +325,16 @@ mosdepth_dist = {
 }
 
 mosdepth_median = {
+
+    doc "Calculate the median coverage from mosdepth .dist.txt output"
+
+    output.dir = savedir
+
     transform('mosdepth.global.dist.txt') to('median_cov') {
-        doc "Calculate the median coverage from mosdepth .dist.txt output"
     
-        from('.dist.txt') {
             exec """
                 $python $STRETCH/scripts/mosdepth_median.py --out $output.median_cov $input.txt
             """
-        }
     }
 }
+
