@@ -338,3 +338,9 @@ mosdepth_median = {
     }
 }
 
+shutdown = {
+
+    doc "Shutdown/stop instance"
+
+    exec "sudo shutdown -h now"
+}

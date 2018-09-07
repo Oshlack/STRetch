@@ -35,5 +35,6 @@ run {
         STR_coverage +
         STR_locus_counts 
     ] +
-    estimate_size
+    estimate_size +
+    shutdown
 }
