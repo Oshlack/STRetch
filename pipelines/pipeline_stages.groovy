@@ -166,7 +166,7 @@ STR_coverage = {
             -g ${REF}.genome
             -a $DECOY_BED
             -b $input.bam > $output.STR_counts
-        """
+        ""","bedtools"
     }
 }
 
@@ -183,7 +183,7 @@ STR_locus_counts = {
             --bed $STR_BED
             --output $output.locus_counts
             ;PATH=$STRPATH
-        """
+        ""","locuscounts"
     }
 }
 
@@ -248,7 +248,7 @@ median_cov_region = {
         set -o pipefail
 
         $goleft covmed $input.bam $EXOME_TARGET | cut -f 1 > $output.median_cov
-     """
+     ""","covmed"
 }
 
 ///////////////////////////////////
@@ -264,7 +264,7 @@ str_targets = {
             set -o pipefail
 
             $bedtools merge -i $input.bed > $output.bed
-        """
+        ""","bedtools"
     //}
 }
 
@@ -297,7 +297,7 @@ median_cov_target = {
         set -o pipefail
 
         $goleft covmed $input.bam $input.bed | cut -f 1 > $output.median_cov
-     """
+     ""","covmed"
 }
 
 mosdepth_dist = {
