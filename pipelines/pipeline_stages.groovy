@@ -44,14 +44,31 @@ set_sample_info = {
 
     branch.original_bam = input[input_type]
 
-    def info = get_info(input)
-    branch.sample = info[0]
+    if(input_type=="cram" || input_type=="bam") {
 
-    if (info.length >= 2) {
-        branch.lane = info[1]
-    } else {
+        branch.sample = get_fname(input).split('\\.')[0]
         branch.lane = 'L001'
+
+    } 
+
+    // fastq.gz inputs usually follow the format: sample_flowcell_library_lane_read.fastq.gz
+    // however sample can also include underscores
+    if(input_type=="gz") {
+
+        def info = get_info(input)
+        if (info.length >= 5) {
+            branch.sample = info[0..-4].join("_")
+        } else {
+            branch.sample = get_fname(input).split('\\.')[0]
+        }
+        if (info.length >= 2) {
+            branch.lane = info[1]
+        } else {
+            branch.lane = 'L001'
+        }
+
     }
+}
 
 link_inputs = {
     doc "For cram input, Bazam requires sample.cram.bai and mosdepth requires sample.crai"
