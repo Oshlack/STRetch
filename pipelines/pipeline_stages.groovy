@@ -42,13 +42,26 @@ set_sample_info = {
 
     branch.original_bam = input[input_type]
 
-    def info = get_info(input)
-    branch.sample = info[0]
+    branch.sample = get_fname(input).split('\\.')[0]
+    branch.flowcell = 'NA'
+    branch.library = 'NA'
+    branch.lane = 'NA'
 
-    if (info.length >= 2) {
-        branch.lane = info[1]
+    if(input_type=="cram" || input_type=="bam") {
+        // intentionally left blank
+
     } else {
-        branch.lane = 'L001'
+        // assume fastq.gz inputs which usually follow the format: 
+        // sample_flowcell_library_lane_read.fastq.gz
+        // however sample can also include underscores
+        def info = get_info(input)
+        if (info.length >= 5) {
+         
+            //branch.sample = info[0..-5].join("_")
+            branch.flowcell = info[-4]
+            branch.library = info[-3]
+            branch.lane = info[-2]
+        }
     }
 
 }
