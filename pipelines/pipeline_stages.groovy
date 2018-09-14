@@ -49,15 +49,14 @@ set_sample_info = {
         branch.sample = get_fname(input).split('\\.')[0]
         branch.lane = 'L001'
 
-    } 
-
-    // fastq.gz inputs usually follow the format: sample_flowcell_library_lane_read.fastq.gz
+    } else {
+    // assume fastq.gz inputs which usually follow the format: 
+    // sample_flowcell_library_lane_read.fastq.gz
     // however sample can also include underscores
-    if(input_type=="gz") {
 
         def info = get_info(input)
         if (info.length >= 5) {
-            branch.sample = info[0..-4].join("_")
+            branch.sample = info[0..-5].join("_")
         } else {
             branch.sample = get_fname(input).split('\\.')[0]
         }
@@ -68,6 +67,7 @@ set_sample_info = {
         }
 
     }
+
 }
 
 link_inputs = {
