@@ -53,6 +53,19 @@ set_sample_info = {
         branch.lane = 'L001'
     }
 
+link_inputs = {
+    doc "For cram input, Bazam requires sample.cram.bai and mosdepth requires sample.crai"
+    if(input_type=="cram") {
+
+        output.dir = "data_links"
+        filter('link') {
+            exec """
+                ln -s $input.cram $output.cram;
+                ln -s ${input.cram}.crai ${output.cram}.bai;
+                ln -s ${input.cram}.crai ${output.cram.prefix}.crai
+            """
+        }
+    }
 }
 
 @preserve("*.bam")

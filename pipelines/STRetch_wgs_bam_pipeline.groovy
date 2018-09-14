@@ -27,7 +27,8 @@ init_shard = {
 
 run {
     "%.${input_type}" * [
-        set_sample_info + 
+        set_sample_info +
+        link_inputs +
             mosdepth_dist + mosdepth_median +
             shards * [
                 init_shard + align_bwa_bam + index_bam 
