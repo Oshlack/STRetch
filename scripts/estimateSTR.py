@@ -334,9 +334,12 @@ def main():
         # Calculate p values based on z scores (one sided)
         pvals = z.apply(lambda z_row: [norm.sf(x) for x in z_row], axis=1, result_type='broadcast') # apply to each row
 
-        # Adjust p values using Benjamini/Hochberg method
-        adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
-       
+        if pvals.isnull().values.all(): # Don't bother adjusting p values if all are null
+            adj_pvals = pvals
+        else:
+            # Adjust p values using Benjamini/Hochberg method
+            adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
+        
         # Merge pvals and z scores back into locus_totals
         adj_pvals['locus'] = adj_pvals.index
         pvals_long = pd.melt(adj_pvals, id_vars = 'locus',
@@ -401,11 +404,11 @@ def main():
         sample_filename = base_filename + sample + '.' + results_suffix
         sample_df = write_data.loc[write_data['sample'] == sample]
         sample_df = sample_df.loc[sample_df['locuscoverage'] != 0.0]
-        sample_df.to_csv(sample_filename, sep= '\t', index = False)
+        sample_df.to_csv(sample_filename, sep= '\t', index = False, na_rep='NaN')
 
     # Write all samples to a single file
     all_filename = base_filename + results_suffix
-    write_data.to_csv(all_filename, sep= '\t', index = False)
+    write_data.to_csv(all_filename, sep= '\t', index = False, na_rep='NaN')
 
 if __name__ == '__main__':
     main()
