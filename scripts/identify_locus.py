@@ -152,9 +152,6 @@ def main():
                 df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen']]
 
                 all_results.append(df)
-        # Print a warning message in case of reads without a CIGAR string
-        if count_noCIGAR > 0:
-            sys.stderr.write('WARNING: ' + str(count_noCIGAR) + ' read(s) in ' + bamfile + ' file had no CIGAR string.')
 
         if total == 0:
             sys.exit('ERROR: there were no reads overlapping the target STR regions. This may indicate a problem with the input file.\n')
