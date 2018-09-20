@@ -185,26 +185,12 @@ index_bam = {
     forward input
 }
 
-STR_coverage = {
-
-    output.dir = savedir
-
-    transform("bam") to ("STR_counts") {
-        exec """
-            $bedtools coverage -counts
-            -sorted
-            -g ${REF}.genome
-            -a $DECOY_BED
-            -b $input.bam > $output.STR_counts
-        ""","bedtools"
-    }
-}
 
 STR_locus_counts = {
     
     output.dir = savedir
 
-    transform("bam") to ("locus_counts") {
+    transform("bam") to ("locus_counts", "STR_counts") {
         exec """
             STRPATH=$PATH;
             PATH=$STRETCH/tools/bin:$PATH;
@@ -212,6 +198,7 @@ STR_locus_counts = {
             --bam $input.bam
             --bed $STR_BED
             --output $output.locus_counts
+            --STR_counts $output.STR_counts
             ;PATH=$STRPATH
         ""","locuscounts"
     }

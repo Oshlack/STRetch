@@ -15,7 +15,6 @@ run {
         set_sample_info +
         align_bwa + index_bam +
         median_cov_region +
-        STR_coverage +
         STR_locus_counts
     ] +
     estimate_size

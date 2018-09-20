@@ -33,7 +33,6 @@ run {
             shards * [
                 init_shard + align_bwa_bam + index_bam 
             ] + merge_bams +
-        STR_coverage +
         STR_locus_counts 
     ] +
     estimate_size +
