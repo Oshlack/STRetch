@@ -59,13 +59,12 @@ def parse_STRcov(filename):
     """Parse all STR coverage"""
     sample_id = get_sample(filename)
     try:
-        cov_data = pd.read_table(filename, delim_whitespace = True,
-                            names = ['chrom', 'start', 'end', 'decoycov'])
+        cov_data = pd.read_table(filename, delim_whitespace = True)
     except pd.io.common.EmptyDataError:
         sys.exit('ERROR: file {0} was empty.\n'.format(filename))
     cov_data['sample'] = sample_id
     cov_data['repeatunit'] = [x.split('-')[1] for x in cov_data['chrom']]
-    cov_data = cov_data[['sample', 'repeatunit', 'decoycov']]
+    cov_data = cov_data[['sample', 'repeatunit', 'decoycov', 'decoycov_pairs']]
     return(cov_data)
 
 def parse_locuscov(filename):
@@ -224,32 +223,23 @@ def main():
     factor = 100
 
     STRcov_data = pd.merge(STRcov_data, genomecov_data)
-    #STRcov_data['decoycov_norm'] = factor * (STRcov_data['decoycov'] + 1) / STRcov_data['genomecov']
-    #STRcov_data['decoycov_log'] = np.log2(STRcov_data['decoycov_norm'])
-    #XXX combines the previous two lines into one. Keeping commented out in case coverage_norm is required later
-    STRcov_data['decoycov_log'] = np.log2(factor * (STRcov_data['decoycov'] + 1) / STRcov_data['genomecov'])
 
-    # #XXX ***Not fully implemented***
-    # # Look for repeat units where the number of reads mapping to the decoy can't be
-    # # explained by those mapping to all loci with that repeat unit
-    #
-    # # Sum the counts over all loci for each repeat unit in each sample
-    # locus_totals = locuscov_data.groupby(['sample', 'repeatunit'])['locuscoverage'].aggregate(np.sum)
-    # locus_totals = pd.DataFrame(locus_totals).reset_index() # convert to DataFrame and make indices into columns
-    # # Calculate the difference between reads assigned to a decoy and the sum of
-    # # all reads assigned to loci with that repeat unit
-    # all_differences = pd.merge(STRcov_data, locus_totals, how='left')
-    # all_differences['difference'] = all_differences['decoycov'] - all_differences['locuscoverage']
-    # # Normalise differences by median coverage and take the log2
-    # all_differences['difference_log'] = np.log2(factor * (all_differences['difference'] + 1) / all_differences['genomecov'])
-    #
-    # locus_totals = pd.merge(locus_totals, STRcov_data)
-    #
-    # # Assign decoy counts to each locus, based on what proportion of the counts for that repeat unit they already have
+#    # XXX this code works, but not sure if it's a good idea
+#    # Use pairs of reads where both map to the same STR decoy chromosome to increase
+#    # size estimates and calculate outliers
+#    # Sum the counts over all loci for each repeat unit in each sample and count loci 
+#    # with same repeat unit
+#    locus_totals = locuscov_data.groupby(['sample', 'repeatunit'])['locuscoverage'].agg(['sum', 
+#        'count']).reset_index()
+#    locus_totals = locuscov_data.merge(locus_totals, how = 'left').merge(STRcov_data, how = 'left')
+#    # Assign decoy counts to each locus, based on what proportion of the counts for that 
+#    # repeat unit they already have
+#    locus_totals['total_assigned'] = locus_totals['locuscoverage'] + locus_totals['decoycov_pairs'] * locus_totals['locuscoverage']/locus_totals['sum']
+#    # NaNs introduced where count = 0, fill these with these with locuscoverage
+#    locus_totals['total_assigned'].fillna(locus_totals['locuscoverage'], inplace=True)
+    locus_totals = locuscov_data.merge(STRcov_data, how = 'left')
+    locus_totals['total_assigned'] = locus_totals['locuscoverage'] #XXX remove if implementing above
 
-    locus_totals = pd.merge(locuscov_data, STRcov_data, how = 'left')
-
-    locus_totals['total_assigned'] = locus_totals['locuscoverage'] #XXX remove this line if implementing the above
     locus_totals['total_assigned_log'] = np.log2(factor * (locus_totals['total_assigned'] + 1) / locus_totals['genomecov'])
     
     # For each locus, calculate if that sample is an outlier relative to others
@@ -392,7 +382,7 @@ def main():
     # Specify output data columns
     write_data = locus_totals[['chrom', 'start', 'end',
                                     'sample', 'repeatunit', 'reflen',
-                                    'locuscoverage',
+                                    'locuscoverage', 'total_assigned',
                                     'outlier', 'p_adj',
                                     'bpInsertion', 'repeatUnits'
                                     ]]
