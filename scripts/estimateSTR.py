@@ -165,9 +165,12 @@ def main():
     if not (locuscov_ids == STRcov_ids == genomecov_ids):
         all_samples = locuscov_ids | STRcov_ids | genomecov_ids
         missing_samples = (all_samples - locuscov_ids) | (all_samples - STRcov_ids) | (all_samples - genomecov_ids)
-        sys.exit("One or more files are missing for sample(s): " + ' '.join(missing_samples))
+        sys.exit("ERROR: One or more files are missing for sample(s): " + ' '.join(missing_samples))
     
     sys.stderr.write('Processing {0} samples\n'.format(len(locuscov_files)))
+
+    if len(locuscov_files) < 2 and control_file == '':
+        sys.stderr.write('WARNING: Only 1 sample and no control file provided, so outlier scores and p-values will not be generated.')
 
     # Parse input data
     locuscov_data = pd.concat( (parse_locuscov(f) for f in locuscov_files), ignore_index = True)
