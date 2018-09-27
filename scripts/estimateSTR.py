@@ -165,9 +165,12 @@ def main():
     if not (locuscov_ids == STRcov_ids == genomecov_ids):
         all_samples = locuscov_ids | STRcov_ids | genomecov_ids
         missing_samples = (all_samples - locuscov_ids) | (all_samples - STRcov_ids) | (all_samples - genomecov_ids)
-        sys.exit("One or more files are missing for sample(s): " + ' '.join(missing_samples))
+        sys.exit("ERROR: One or more files are missing for sample(s): " + ' '.join(missing_samples))
     
     sys.stderr.write('Processing {0} samples\n'.format(len(locuscov_files)))
+
+    if len(locuscov_files) < 2 and control_file == '':
+        sys.stderr.write('WARNING: Only 1 sample and no control file provided, so outlier scores and p-values will not be generated.')
 
     # Parse input data
     locuscov_data = pd.concat( (parse_locuscov(f) for f in locuscov_files), ignore_index = True)
@@ -334,9 +337,12 @@ def main():
         # Calculate p values based on z scores (one sided)
         pvals = z.apply(lambda z_row: [norm.sf(x) for x in z_row], axis=1, result_type='broadcast') # apply to each row
 
-        # Adjust p values using Benjamini/Hochberg method
-        adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
-       
+        if pvals.isnull().values.all(): # Don't bother adjusting p values if all are null
+            adj_pvals = pvals
+        else:
+            # Adjust p values using Benjamini/Hochberg method
+            adj_pvals = pvals.apply(p_adj_bh, axis=0) # apply to each column
+        
         # Merge pvals and z scores back into locus_totals
         adj_pvals['locus'] = adj_pvals.index
         pvals_long = pd.melt(adj_pvals, id_vars = 'locus',
@@ -401,11 +407,11 @@ def main():
         sample_filename = base_filename + sample + '.' + results_suffix
         sample_df = write_data.loc[write_data['sample'] == sample]
         sample_df = sample_df.loc[sample_df['locuscoverage'] != 0.0]
-        sample_df.to_csv(sample_filename, sep= '\t', index = False)
+        sample_df.to_csv(sample_filename, sep= '\t', index = False, na_rep='NaN')
 
     # Write all samples to a single file
     all_filename = base_filename + results_suffix
-    write_data.to_csv(all_filename, sep= '\t', index = False)
+    write_data.to_csv(all_filename, sep= '\t', index = False, na_rep='NaN')
 
 if __name__ == '__main__':
     main()

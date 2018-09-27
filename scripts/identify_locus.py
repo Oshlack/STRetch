@@ -133,10 +133,12 @@ def main():
             if len(all_positions) > 0:
                 motif_bed = bt.BedTool(all_positions).sort()
                 # Merge all the intervals, then count how many of the original intervals overlap the merged ones (4th column)
-                motif_coverage = motif_bed.merge(stream=True).coverage(b=motif_bed, counts=True)
+                motif_coverage = motif_bed.merge(stream=True).coverage(b=motif_bed, counts=True,
+                    nonamecheck=True)
 
                 tmp_bed = 'tmp-' + randomletters(8) + '.bed' #create temporary file for bedtools to write to and pandas to read since streams don't seem to work
-                closest_STR = motif_coverage.closest(STR_bed, d=True, stream=True).saveas(tmp_bed)
+                closest_STR = motif_coverage.closest(STR_bed, d=True, stream=True,
+                    nonamecheck=True).saveas(tmp_bed)
                 colnames = ['chr', 'start', 'stop', 'count', 'STR_chr', 'STR_start',
                 'STR_stop', 'motif', 'reflen', 'distance']
                 df = pd.read_csv(tmp_bed, sep='\t', header=None, names=colnames)
@@ -150,9 +152,6 @@ def main():
                 df = df.loc[:, ['STR_chr', 'STR_start', 'STR_stop', 'motif', 'count', 'reflen']]
 
                 all_results.append(df)
-        # Print a warning message in case of reads without a CIGAR string
-        if count_noCIGAR > 0:
-            sys.stderr.write('WARNING: ' + str(count_noCIGAR) + ' read(s) in ' + bamfile + ' file had no CIGAR string.')
 
         if total == 0:
             sys.exit('ERROR: there were no reads overlapping the target STR regions. This may indicate a problem with the input file.\n')
