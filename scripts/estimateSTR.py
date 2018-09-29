@@ -224,26 +224,28 @@ def main():
 
     STRcov_data = pd.merge(STRcov_data, genomecov_data)
 
-#    # XXX this code works, but not sure if it's a good idea
-#    # Use pairs of reads where both map to the same STR decoy chromosome to increase
-#    # size estimates and calculate outliers
-#    # Sum the counts over all loci for each repeat unit in each sample and count loci 
-#    # with same repeat unit
-#    locus_totals = locuscov_data.groupby(['sample', 'repeatunit'])['locuscoverage'].agg(['sum', 
-#        'count']).reset_index()
-#    locus_totals = locuscov_data.merge(locus_totals, how = 'left').merge(STRcov_data, how = 'left')
-#    # Assign decoy counts to each locus, based on what proportion of the counts for that 
-#    # repeat unit they already have
-#    locus_totals['total_assigned'] = locus_totals['locuscoverage'] + locus_totals['decoycov_pairs'] * locus_totals['locuscoverage']/locus_totals['sum']
-#    # NaNs introduced where count = 0, fill these with these with locuscoverage
-#    locus_totals['total_assigned'].fillna(locus_totals['locuscoverage'], inplace=True)
-    locus_totals = locuscov_data.merge(STRcov_data, how = 'left')
-    locus_totals['total_assigned'] = locus_totals['locuscoverage'] #XXX remove if implementing above
+    # Use pairs of reads where both map to the same STR decoy chromosome to increase
+    # size estimates and calculate outliers
+    # Sum the counts over all loci for each repeat unit in each sample and count loci 
+    # with same repeat unit
+    locus_totals = locuscov_data.groupby(['sample', 'repeatunit'])['locuscoverage'].agg(['sum', 
+        'count']).reset_index()
+    locus_totals = locuscov_data.merge(locus_totals, how = 'left').merge(STRcov_data, how = 'left')
+    # Assign decoy counts to each locus, based on what proportion of the counts for that 
+    # repeat unit they already have
+    locus_totals['total_assigned'] = locus_totals['locuscoverage'] + locus_totals['decoycov_pairs'] * locus_totals['locuscoverage']/locus_totals['sum']
+    # NaNs introduced where count = 0, fill these with with locuscoverage
+    locus_totals['total_assigned'].fillna(locus_totals['locuscoverage'], inplace=True)
 
+#XXX Uncomment if not implementing the above
+#    locus_totals = locuscov_data.merge(STRcov_data, how = 'left')
+#    locus_totals['total_assigned'] = locus_totals['locuscoverage']
+
+    locus_totals['locuscoverage_log'] = np.log2(factor * (locus_totals['locuscoverage'] + 1) / locus_totals['genomecov'])
     locus_totals['total_assigned_log'] = np.log2(factor * (locus_totals['total_assigned'] + 1) / locus_totals['genomecov'])
     
     # For each locus, calculate if that sample is an outlier relative to others
-    total_assigned_wide = locus_totals.pivot(index='locus', columns='sample', values='total_assigned_log')
+    locuscoverage_wide = locus_totals.pivot(index='locus', columns='sample', values='locuscoverage_log')
 
     # Calculate values for if there were zero reads at a locus in all samples
     null_locus_counts = np.log2(factor * (0 + 1) / genomecov_data['genomecov'])
@@ -258,7 +260,7 @@ def main():
 
     # Use Huber's M-estimator to calculate median and SD across all samples
     # for each locus
-    sample_estimates = total_assigned_wide.apply(hubers_est, axis=1)
+    sample_estimates = locuscoverage_wide.apply(hubers_est, axis=1)
     # Where sd is NA, replace with the minimum non-zero sd from all loci
     min_sd = np.min(sample_estimates['sd'][sample_estimates['sd'] > 0])
     sample_estimates['sd'].fillna(min_sd, inplace=True)
@@ -274,7 +276,7 @@ def main():
 
         sample_estimates.loc['null_locus_counts'] = null_locus_counts_est
 
-        n = len(total_assigned_wide.columns)
+        n = len(locuscoverage_wide.columns)
         sample_estimates['n'] = n
 
         sample_estimates.to_csv(emit_file, sep= '\t')
@@ -286,30 +288,30 @@ def main():
         control_estimates = parse_controls(control_file)
         # Get a list of all loci in the control file but not the sample data
         control_loci_df = control_estimates.iloc[control_estimates.index != 'null_locus_counts']
-        control_loci = [x for x in control_loci_df.index if x not in total_assigned_wide.index]
+        control_loci = [x for x in control_loci_df.index if x not in locuscoverage_wide.index]
 
         # Extract and order just those control estimates appearing in the current data
-        mu_sd_estimates = control_estimates.reindex(total_assigned_wide.index)
+        mu_sd_estimates = control_estimates.reindex(locuscoverage_wide.index)
         # Fill NaNs with null_locus_counts values
         mu_sd_estimates.fillna(control_estimates.loc['null_locus_counts'],
                                 inplace=True)
     else:
         # Extract and order estimates to match the current data
-        mu_sd_estimates = sample_estimates.reindex(total_assigned_wide.index)
+        mu_sd_estimates = sample_estimates.reindex(locuscoverage_wide.index)
 
     # calculate z scores
-    z = z_score(total_assigned_wide, mu_sd_estimates)
+    z = z_score(locuscoverage_wide, mu_sd_estimates)
 
     # If a control file is given, effectively add zeros counts at all loci in 
     # controls but not in the samples. 
     # These extra rows will dissapear due to a later merge
     if control_file != '': 
-        # Create a total_assigned_wide as if all loci have zero counts
-        null_total_assigned_wide = pd.DataFrame(columns = sample_names, index = control_loci)
-        null_total_assigned_wide.fillna(null_locus_counts, inplace = True)
+        # Create a locuscoverage_wide as if all loci have zero counts
+        null_locuscoverage_wide = pd.DataFrame(columns = sample_names, index = control_loci)
+        null_locuscoverage_wide.fillna(null_locus_counts, inplace = True)
         # Caculate z scores
-        null_z = z_score(null_total_assigned_wide, 
-                            control_estimates.reindex(null_total_assigned_wide.index))
+        null_z = z_score(null_locuscoverage_wide, 
+                            control_estimates.reindex(null_locuscoverage_wide.index))
         loci_with_counts = z.index
         z = z.append(null_z)
 
@@ -365,14 +367,19 @@ def main():
     X_train = np.log2(STRcov_model['coverage_norm']).values.reshape(-1, 1)
     Y_train = np.log2(STRcov_model['allele2'])
     regr.fit(X_train, Y_train)
-    # Make a prediction
-    Y_pred = regr.predict(locus_totals['total_assigned_log'].values.reshape(-1, 1))
+    # Make a prediction based on locuscoverage
+    Y_pred = regr.predict(locus_totals['locuscoverage_log'].values.reshape(-1, 1))
     predict = np.power(2, Y_pred)
     locus_totals['bpInsertion'] = predict
+    # Make a prediction based on total_assigned
+    Y_pred_max = regr.predict(locus_totals['total_assigned_log'].values.reshape(-1, 1))
+    predict_max = np.power(2, Y_pred_max)
+    locus_totals['bpInsertion_max'] = predict_max
 
     # Get the estimated size in terms of repeat units (total, not relative to ref)
     repeatunit_lens = [len(x) for x in locus_totals['repeatunit']]
     locus_totals['repeatUnits'] = (locus_totals['bpInsertion']/repeatunit_lens) + locus_totals['reflen']
+    locus_totals['repeatUnits_max'] = (locus_totals['bpInsertion_max']/repeatunit_lens) + locus_totals['reflen']
 
     # Split locus into 3 columns: chrom start end
     locuscols = pd.DataFrame([x.split('-') for x in locus_totals['locus']],
@@ -384,7 +391,7 @@ def main():
                                     'sample', 'repeatunit', 'reflen',
                                     'locuscoverage', 'total_assigned',
                                     'outlier', 'p_adj',
-                                    'bpInsertion', 'repeatUnits'
+                                    'bpInsertion', 'repeatUnits', 'repeatUnits_max'
                                     ]]
 
     #sort by outlier score then estimated size (bpInsertion), both descending
