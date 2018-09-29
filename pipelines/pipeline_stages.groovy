@@ -71,7 +71,7 @@ align_bwa = {
     doc "Align reads with bwa mem algorithm."
 
     def fastaname = get_fname(REF)
-    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
+    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.STRdecoy.bam') {
         exec """
             set -o pipefail
 
@@ -111,7 +111,7 @@ align_bwa_bam = {
     // - the file extension '.bam'
     List outputFileParts = [branch.sample] + 
                            (bwa_parallelism>1?[shard]:[]) + // empty unless parallelism used
-                           ['bam']
+                           ['STRdecoy.bam']
 
     produce(outputFileParts.join('.')) {
         exec """
@@ -136,7 +136,7 @@ merge_bams = {
         return
     }
 
-    produce(branch.sample + '.merge.bam') {
+    produce(branch.sample + '.STRdecoy.merge.bam') {
         exec """
             time java -Xmx2g -jar $STRETCH/tools/picard.jar MergeSamFiles
                 ${inputs.bam.withFlag("INPUT=")}
