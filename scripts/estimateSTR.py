@@ -402,6 +402,11 @@ def main():
     #sort by outlier score then estimated size (bpInsertion), both descending
     write_data = write_data.sort_values(['outlier', 'bpInsertion'], ascending=[False, False])
     #XXX check for duplicate rows?
+    # Convert outlier and p_adj to numeric type and do some rounding/formatting
+    write_data['outlier'] = pd.to_numeric(write_data['outlier'])
+    write_data['p_adj'] = [ format(x, '.2g') for x in pd.to_numeric(write_data['p_adj']) ]
+    write_data = write_data.round({'total_assigned': 1, 'outlier': 1,
+        'bpInsertion': 1, 'repeatUnits': 1, 'repeatUnits_max': 1})
 
     # Write individual files for each sample, remove rows where locuscoverage == 0
     samples = set(write_data['sample'])
