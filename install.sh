@@ -52,12 +52,8 @@ function samtools_install {
 }
 
 function bazam_install {
-    git clone https://github.com/ssadedin/bazam.git
-    cd bazam
-    git submodule update --init --recursive
-    ./gradlew clean jar
-    cd ..
-    ln -s $PWD/bazam/build/libs/bazam.jar $PWD/bin/bazam.jar
+    wget --no-check-certificate https://github.com/ssadedin/bazam/releases/download/1.0.1/bazam.jar
+    ln -s $PWD/bazam.jar $PWD/bin/bazam.jar
 }
 
 function picard_install {

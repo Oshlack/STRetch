@@ -118,7 +118,7 @@ align_bwa_bam = {
             set -o pipefail
 
             java -Xmx16g -Dsamjdk.reference_fasta=$CRAM_REF 
-                 -jar $STRETCH/tools/bazam/build/libs/bazam.jar
+                 -jar $bazam
                  -pad $SLOP -n 6
                 $regionFlag $shardFlag -bam ${input[input_type]} |
                 $bwa mem -p -M -t ${threads-1}
@@ -138,7 +138,7 @@ merge_bams = {
 
     produce(branch.sample + '.STRdecoy.merge.bam') {
         exec """
-            time java -Xmx2g -jar $STRETCH/tools/picard.jar MergeSamFiles
+            time java -Xmx2g -jar $picard MergeSamFiles
                 ${inputs.bam.withFlag("INPUT=")}
                 VALIDATION_STRINGENCY=LENIENT
                 ASSUME_SORTED=true
