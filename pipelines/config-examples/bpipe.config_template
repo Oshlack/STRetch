@@ -1,0 +1,30 @@
+// Defaults
+walltime="04:00:00"
+memory="8g"
+
+// Values for specific commands
+commands {
+
+    mosdepth {
+        memory="4g"
+    }
+
+    bwamem {
+        walltime="48:00:00"
+        procs=8
+        memory="32g"
+    }
+
+    merge {
+        memory="4g"
+    }
+
+    bedtools {
+        memory="4g"
+    }
+
+    locuscounts {
+        memory="16g"
+    }
+  
+}

@@ -10,10 +10,19 @@
 installdir=$PWD
 refdir=$PWD/reference-data
 toolspec=$PWD/pipelines/pipeline_config.groovy
-template=$PWD/pipelines/config-examples/pipeline_config_template.groovy
+bpipeconfig=$PWD/pipelines/bpipe.config
+bpipeconfig_template=$PWD/pipelines/config-examples/bpipe.config_template
 
 mkdir -p tools/bin
 cd tools
+
+if [ ! -f $toolspec ] ; then
+    echo "The configuration file pipelines/pipeline_config.groovy was not found, creating it."
+    else
+    echo -n "WARNING: pipelines/pipeline_config.groovy already exists so will be overwritten by this installation. "
+    echo "Creating backup pipelines/pipeline_config.groovy.backup in case you wish to retreive the previous version of this file."
+    cp $toolspec ${toolspec}.backup
+fi
 
 #a list of which programs need to be installed
 commands="bpipe python goleft bedtools bwa samtools mosdepth"
@@ -112,7 +121,6 @@ for j in $jarfiles ; do
     echo "$j=\"$PWD/bin/${j}.jar\"" >> $toolspec
 done
 
-
 if [ ! -f $refdir/hg19.PCRfreeWGS_143_STRetch_controls.tsv ] ; then
     mkdir -p $refdir
     echo "Downloading reference data"
@@ -134,6 +142,11 @@ echo "// Uncomment the line below to use a set of WGS samples as controls, or sp
 echo "//CONTROL=\"$refdir/hg19.PCRfreeWGS_143_STRetch_controls.tsv\"" >> $toolspec
 echo >> $toolspec
 
+if [ ! -f $bpipeconfig ] ; then
+    echo "pipelines/bpipe.config not found, creating it"
+    #copy bpipe.config template to pipeline directory
+    cp $bpipeconfig_template $bpipeconfig
+fi
 
 #loop through commands to check they are all installed
 echo "**********************************************************"
@@ -161,7 +174,6 @@ for j in $jarfiles ; do
 done
 
 
-
 echo "**********************************************************"
 
 #check for reference data
@@ -170,6 +182,24 @@ if [ ! -f $refdir/*dedup.sorted.bed ] ; then
     echo "You will need to download them manually, then add the path to $toolspec"
 else
     echo "It looks like the reference data has been downloaded"
+fi
+
+echo "**********************************************************"
+
+#check for config files
+if [ ! -f $toolspec ] ; then
+    echo -n "WARNING: pipelines/pipeline_config.groovy could not be found!!!! "
+    echo "You will need to create this file manually."
+else
+    echo "It looks like pipelines/pipeline_config.groovy exists"
+fi
+
+if [ ! -f $bpipeconfig ] ; then
+    echo -n "WARNING: pipelines/bpipe.config could not be found. "
+    echo -n "This file is only required when using a job submission system. "
+    echo "If required, you will need to create this file manually."
+else
+    echo "It looks like pipelines/bpipe.config exists"
 fi
 
 echo "**********************************************************"
