@@ -1,15 +1,14 @@
+// Defaults
 walltime="04:00:00"
+memory="8g"
 modules="java"
 
 commands {
+
     bwamem {
         walltime="48:00:00"
         procs=8
-        memory=32
+        memory="32g"
     }
 
-
-    bedtools {
-        memory=8
-    }
 }

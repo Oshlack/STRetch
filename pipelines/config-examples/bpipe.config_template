@@ -6,7 +6,7 @@ memory="8g"
 commands {
 
     mosdepth {
-        memory="4g"
+        memory="8g"
     }
 
     bwamem {
