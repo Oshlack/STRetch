@@ -35,6 +35,6 @@ run {
             ] + merge_bams +
         STR_locus_counts 
     ] +
-    estimate_size +
+//    estimate_size +
     shutdown
 }
