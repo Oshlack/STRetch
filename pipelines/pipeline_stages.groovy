@@ -55,9 +55,13 @@ set_sample_info = {
         // sample_flowcell_library_lane_read.fastq.gz
         // however sample can also include underscores
         def info = get_info(input)
-        if (info.length >= 5) {
+        if (info.length == 2) {
          
-            //branch.sample = info[0..-5].join("_")
+            branch.sample = info[0..-2].join("_")
+        }
+       if (info.length >= 5) {
+         
+            branch.sample = info[0..-5].join("_")
             branch.flowcell = info[-4]
             branch.library = info[-3]
             branch.lane = info[-2]
