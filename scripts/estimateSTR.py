@@ -94,6 +94,8 @@ def parse_genomecov(filename):
         mediancov = pd.read_table(filename, delim_whitespace = True, header = None).iloc[0,0]
     except pd.io.common.EmptyDataError:
         sys.exit('ERROR: file {0} was empty.\n'.format(filename))
+    if mediancov < 1:
+        sys.exit('ERROR: Median coverage in file {0} was {1}.\nSuch a low value could indicate median coverage was not correctly calculated,\nfor example an incorrect target region was specified or the WGS pipeline was used for exome data.'.format(filename, mediancov))
     genomecov_data = pd.DataFrame({'sample': [sample_id], 'genomecov': [mediancov]})
     return(genomecov_data)
 
