@@ -11,7 +11,7 @@ savedir = "keep"
 // Helper functions
 
 def get_fname(path) {
-    x = path.split('/')[-1]
+    def x = path.split('/')[-1]
     return(x)
 }
 
