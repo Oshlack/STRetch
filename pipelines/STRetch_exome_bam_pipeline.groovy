@@ -26,7 +26,7 @@ init_shard = {
 run {
     "%.${input_type}" * [
         set_sample_info +
-        median_cov_region +
+        mosdepth_region + mosdepth_mean_region +
         shards * [
             init_shard + align_bwa_bam + index_bam
         ] + merge_bams +

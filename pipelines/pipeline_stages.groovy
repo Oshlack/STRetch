@@ -319,6 +319,32 @@ mosdepth_dist = {
     }
 }
 
+mosdepth_region = {
+    
+    doc "Calculate mean coverage per bed region"
+
+    transform(input_type) to(input.prefix + '.regions.bed.gz') {
+
+        if(input_type=="cram") {
+            exec """
+                $STRETCH/tools/bin/mosdepth -n -t $threads
+                --by $EXOME_TARGET
+                -f $CRAM_REF
+                $output.prefix.prefix.prefix
+                ${input[input_type]}
+            ""","mosdepth"
+        } else {
+            exec """
+                $STRETCH/tools/bin/mosdepth -n -t $threads
+                --by $EXOME_TARGET
+                $output.prefix.prefix.prefix
+                ${input[input_type]}
+            ""","mosdepth"
+        }
+
+    }
+}
+
 mosdepth_median = {
     transform('mosdepth.global.dist.txt') to('median_cov') {
         doc "Calculate the median coverage from mosdepth .dist.txt output"
@@ -326,6 +352,18 @@ mosdepth_median = {
         from('.dist.txt') {
             exec """
                 $python $STRETCH/scripts/mosdepth_median.py --out $output.median_cov $input.txt
+            """
+        }
+    }
+}
+
+mosdepth_mean_region = {
+    transform('regions.bed.gz') to('median_cov') {
+        doc "Calculate the mean coverage from mosdepth .regions.bed.gz output"
+    
+        from('.bed.gz') {
+            exec """
+                $python $STRETCH/scripts/mosdepth_mean_region.py --out $output.median_cov $input.gz
             """
         }
     }
