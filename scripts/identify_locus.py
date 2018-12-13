@@ -71,6 +71,67 @@ def detect_readlen(bamfile, sample = 100):
             bam.close()
             return maxlen, count_noCIGAR
 
+def indel_size(read, region, chrom = None):
+    """
+    Use the CIGAR string to report the total size of all indels in the read, if that read spans the region specified
+    Args:
+        read (pysam alignment object)
+        region (start,stop): tuple containing two integer coordinates of the
+            target on the reference genome
+        chrom (str): chromosome name of the target coordinates.
+            Optional, if provided will check read aligned to that chromosome
+    Returns:
+        indel_size (int): Total size of indel(s) over the STR region of the read
+            (+ive for insertion -ive for deletion)
+    Raises:
+        TypeError: CIGAR string missing
+        ValueError: Read does not span the region specified
+    """
+    ref_start, ref_stop = region
+    cigar = read.cigar
+    read_start = read.pos
+    #XXX throw exception if the read does not align to that chromosome
+    if chrom:
+        pass
+
+    # Iterate through the CIGAR string to extract indel info and the 'footprint' of read on the ref
+    # footprint = matches + deletions
+    total_deletion = 0
+    total_insertion = 0
+    footprint = 0
+    repeat_indel = 0
+    try:
+        for field in cigar:
+            this_insertion = 0
+            this_deletion = 0
+            if field[0] == 0: # matches
+                footprint += field[1]
+            elif field[0] == 1: # insertions
+                this_insertion = field[1]
+                total_insertion += this_insertion
+            elif field[0] == 2: # deletions
+                this_deletion = field[1]
+                total_deletion += this_deletion
+                footprint += this_deletion
+
+            # test if current position is in the repeat
+            current_pos = read_start + footprint
+            if ref_start <= current_pos & current_pos <= ref_stop:
+                repeat_indel += this_insertion
+                repeat_indel -= this_deletion
+
+    except TypeError:
+        raise(TypeError, "CIGAR string missing")
+
+    # check if the read covers the entire repeat
+    read_end = read_start + footprint
+    positions = [read_start, ref_start, ref_stop, read_end]
+    if positions == sorted(positions):
+        reads_with_repeat += 1 # repeat completely contained within repeat so keep going
+        all_repeat_sizes.append((ref_rep_bases + repeat_indel)/repeat_unit)
+    else:
+        raise(ValueError, "Read does not span the region specified") # repeat not contained in read
+
 def main():
     # Parse command line arguments
     args = parse_args()
