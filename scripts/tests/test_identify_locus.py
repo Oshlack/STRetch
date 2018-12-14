@@ -31,16 +31,47 @@ def test_randomletters_diff():
     ((1,10), (1,10), True),
     ((1,9), (1,10), False),
     ((2,10), (1,10), False),
+    # Single base
+    ((1,10), (5,5), True),
+    ((1,10), (10,10), True),
+    ((1,10), (1,1), True),
     # Nonsense input - should probably generate errors XXX
     ((2,-10), (1,10), False),
 ])
 def test_spans_region(test_region, target_region, expected):
     assert spans_region(test_region, target_region) == expected
 
-def test_spans_region_errors(): #XXX incomplete
-    test_region = (1,10)
-    target_region = (4,6)
-    assert spans_region(test_region, target_region)
+@pytest.mark.parametrize("test_region, target_region", [
+    # Nonsense input - should generate errors
+    ((2,-10), (1)),
+    ((2,-10), (1,3,6)),
+])
+def test_spans_region_errors(test_region, target_region):
+    with pytest.raises(TypeError):
+        spans_region(test_region, target_region)
+
+@pytest.mark.parametrize("position, region, expected", [
+    # Easy ones
+    (5, (1,10), True),
+    (20, (1,10), False),
+    # Borderline cases
+    (1, (1,10), True),
+    (10, (1,10), True),
+    (0, (1,10), False),
+    (11, (1,10), False),
+    # Nonsense input - should probably generate errors XXX
+    #((1,2), (1,10), False),
+])
+def test_in_region(position, region, expected):
+    assert in_region(position, region) == expected
+
+@pytest.mark.parametrize("position, region", [
+    # Nonsense input - should generate errors
+    (2, (1,10,20)),
+])
+def test_in_region_errors(position, region):
+    with pytest.raises(TypeError):
+        in_region(position, region)
 
 def test_indel_size_nonspanning():
     """Raise ValueError if read doesn't span region"""
