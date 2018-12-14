@@ -71,6 +71,20 @@ def detect_readlen(bamfile, sample = 100):
             bam.close()
             return maxlen, count_noCIGAR
 
+def spans_region(test_region, target_region):
+    """check if test_region spans target region
+    Args:
+        test_region tuple/list (int, int)
+        target_region tuple/list (int, int)
+    Returns:
+        bool
+    """
+    positions = [test_region[0], target_region[0], target_region[1], test_region[1]]
+    if positions == sorted(positions): # read spans position
+        return True
+    else:
+        return False
+
 def indel_size(read, region, chrom = None):
     """
     Use the CIGAR string to report the total size of all indels in the read, if that read spans the region specified
@@ -121,16 +135,15 @@ def indel_size(read, region, chrom = None):
                 repeat_indel -= this_deletion
 
     except TypeError:
-        raise(TypeError, "CIGAR string missing")
+        raise TypeError("CIGAR string missing")
 
     # check if the read covers the entire repeat
     read_end = read_start + footprint
     positions = [read_start, ref_start, ref_stop, read_end]
-    if positions == sorted(positions):
-        reads_with_repeat += 1 # repeat completely contained within repeat so keep going
-        all_repeat_sizes.append((ref_rep_bases + repeat_indel)/repeat_unit)
+    if positions == sorted(positions): # read spans position
+        return repeat_indel
     else:
-        raise(ValueError, "Read does not span the region specified") # repeat not contained in read
+        raise ValueError("Read does not span the region specified") # repeat not contained in read
 
 def main():
     # Parse command line arguments
