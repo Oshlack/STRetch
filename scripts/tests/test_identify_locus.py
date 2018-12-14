@@ -44,7 +44,7 @@ def test_spans_region_errors(): #XXX incomplete
 
 def test_indel_size_nonspanning():
     """Raise ValueError if read doesn't span region"""
-    bamfile = '11_L001_R1.STRdecoy.bam'
+    bamfile = 'test_data/11_L001_R1.STRdecoy.bam'
     test_read_name = '1-3871'
     region = (70713514, 70713561)
     chrom = 'chr13'
@@ -56,7 +56,7 @@ def test_indel_size_nonspanning():
                 break
 
 # def test_indel_size_0():
-#     bamfile = '49_L001_R1.STRdecoy.bam'
+#     bamfile = 'test_data/49_L001_R1.STRdecoy.bam'
 #     test_read_name = '1-293'
 #     region = (70713514, 70713561)
 #     fetch_region = (70713514,)
@@ -77,7 +77,7 @@ def test_indel_size_nonspanning():
 # 
 # 
 # def test_indel_size():
-#     bamfile = '49_L001_R1.STRdecoy.bam'
+#     bamfile = 'test_data/49_L001_R1.STRdecoy.bam'
 #     test_read_name = '1-293'
 #     region = (70713514, 70713561)
 #     fetch_region = (70713514,)
