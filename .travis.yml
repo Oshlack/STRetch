@@ -1,16 +1,27 @@
 language: python
 cache: packages
 install:
+- STRetch=$PWD
 - ./.testing/install-ci.sh
 # Create working directory
 - mkdir test
 - cp reference-data/SCA8_region.bed test/
-- cd test/
-# command to run tests
+# commands to run tests
 script:
-# Run the test data
+# End-to-end test
+- cd $STRetch/test/
 - ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
 - if diff STRs.tsv ../.testing/STRs.benchmark.tsv; then echo exit 0; else echo exit 1; fi
+# Unit tests
+- cd $STRetch/scripts/tests/
+- source $STRetch/tools/miniconda/bin/activate $STRetch/tools/miniconda/envs/STR
+- python -m pytest test_identify_locus.py
 after_script:
+# View output files
+- cd $STRetch/test/
 - head *.locus_counts *.STR_counts *.median_cov
 - head *.tsv
+# Calculate and display code coverage
+- cd $STRetch/scripts/tests/
+- coverage run test_identify_locus.py
+- coverage html
