@@ -72,18 +72,42 @@ def detect_readlen(bamfile, sample = 100):
             return maxlen, count_noCIGAR
 
 def spans_region(test_region, target_region):
-    """check if test_region spans target region
+    """Check if test_region spans target region.
+    Regions are inclusive of both endpoints.
+
     Args:
         test_region tuple/list (int, int)
         target_region tuple/list (int, int)
     Returns:
         bool
     """
-    positions = [test_region[0], target_region[0], target_region[1], test_region[1]]
+    try:
+        positions = [test_region[0], target_region[0], target_region[1], test_region[1]]
+    except TypeError:
+        raise TypeError( ('Possible cause: expecting 2 positions per region, '
+            'regions specified were {} and {}').format(
+            test_region, target_region))
+    if len(test_region) != 2 or len(target_region) != 2:
+        raise TypeError( ('Possible cause: expecting 2 positions per region, '
+            'regions specified were {} and {}').format(
+            test_region, target_region))
+
     if positions == sorted(positions): # read spans position
         return True
     else:
         return False
+
+def in_region(position, region):
+    """Check if position is in the region.
+    Regions are inclusive of both endpoints.
+
+    Args:
+        position int
+        region tuple/list (int, int)
+    Returns:
+        bool
+    """
+    return spans_region(region, (position, position) )
 
 def indel_size(read, region, chrom = None):
     """
@@ -130,7 +154,8 @@ def indel_size(read, region, chrom = None):
 
             # test if current position is in the repeat
             current_pos = read_start + footprint
-            if ref_start <= current_pos & current_pos <= ref_stop:
+
+            if in_region(current_pos, (ref_start, ref_stop)):
                 repeat_indel += this_insertion
                 repeat_indel -= this_deletion
 
@@ -139,8 +164,7 @@ def indel_size(read, region, chrom = None):
 
     # check if the read covers the entire repeat
     read_end = read_start + footprint
-    positions = [read_start, ref_start, ref_stop, read_end]
-    if positions == sorted(positions): # read spans position
+    if spans_region((read_start, read_end), (ref_start, ref_stop)): # read spans position
         return repeat_indel
     else:
         raise ValueError("Read does not span the region specified") # repeat not contained in read
