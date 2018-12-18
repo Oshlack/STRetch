@@ -23,5 +23,6 @@ after_script:
 - head *.tsv
 # Calculate and display code coverage
 - cd $STRetch/scripts/tests/
+- CODECOV_TOKEN="4d95f705-615a-43cc-8f00-d8f3bd6592f1"
 - coverage run -m pytest test_identify_locus.py
 - coverage html
