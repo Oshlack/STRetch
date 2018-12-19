@@ -86,6 +86,28 @@ def test_indel_size_nonspanning():
                 indel_size(read, region, chrom)
                 break
 
+@pytest.mark.parametrize("test_read_name, expected", [
+    ('1-293', 0), # same as ref
+    ('1-293:10I', 10), # easy insertion
+    ('1-293:5D', -5), # easy deletion
+    ('1-293:0compound', 0), # insertion and deletion same size cancel out
+    ('1-293:2Dcompound', -2), # insertion and deletion of different sizes makes deletion
+    ('1-293:20Icompound', 20), # two insertions added together
+    ('1-293:outside', 0), # indel outside STR
+])
+def test_indel_size(test_read_name, expected):
+    """Test indel corretly identified"""
+    bamfile = 'test_data/49_tests.STRdecoy.sam'
+    region = (70713514, 70713561)
+    chrom = 'chr13'
+    bam = pysam.Samfile(bamfile, 'rb')
+    for read in bam.fetch():
+        if read.query_name == test_read_name:
+            try:
+                assert indel_size(read, region, chrom) == expected
+            except ValueError:
+                continue
+
 # def test_indel_size_0():
 #     bamfile = 'test_data/49_L001_R1.STRdecoy.bam'
 #     test_read_name = '1-293'
