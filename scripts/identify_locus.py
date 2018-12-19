@@ -80,6 +80,8 @@ def spans_region(test_region, target_region):
         target_region tuple/list (int, int)
     Returns:
         bool
+    Raises:
+        TypeError: Incorrectly defined regions.
     """
     try:
         positions = [test_region[0], target_region[0], target_region[1], test_region[1]]
@@ -105,7 +107,7 @@ def in_region(position, region):
         position int
         region tuple/list (int, int)
     Returns:
-        bool
+        bool: True if position is within region, else False
     """
     return spans_region(region, (position, position) )
 
