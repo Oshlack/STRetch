@@ -108,6 +108,25 @@ def test_indel_size(test_read_name, expected):
             except ValueError:
                 continue
 
+def test_indel_size_all():
+    """Test indel corretly identified"""
+    bamfile = 'test_data/49_tests.STRdecoy.sam'
+    region = (70713514, 70713561)
+    chrom = 'chr13'
+    bam = pysam.Samfile(bamfile, 'rb')
+    all_indels = {}
+    for read in bam.fetch():
+        if not read.query_name.startswith('1-293'):
+            try:
+                all_indels[read.query_name] = indel_size(read, region, chrom)
+                print(read.is_secondary)
+            except ValueError:
+                continue
+    print(all_indels)
+    print( [all_indels[x] for x in all_indels] )
+    #assert False
+
+
 # def test_indel_size_0():
 #     bamfile = 'test_data/49_L001_R1.STRdecoy.bam'
 #     test_read_name = '1-293'
