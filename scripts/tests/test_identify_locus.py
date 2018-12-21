@@ -145,47 +145,7 @@ def test_locus_counts_bamlist(outfile = None, max_distance = 500):
     with pytest.raises(TypeError):
         locus_counts(bamfiles, bedfile, outfile, max_distance)
 
-# def test_indel_size_0():
-#     bamfile = 'test_data/49_L001_R1.STRdecoy.bam'
-#     test_read_name = '1-293'
-#     region = (70713514, 70713561)
-#     fetch_region = (70713514,)
-#     chrom = 'chr13'
-#     bam = pysam.Samfile(bamfile, 'rb')
-#     i = 0
-#     for read in bam.fetch(chrom, *fetch_region):
-#         #print(read.cigar)
-#         if read.query_name == test_read_name:
-#             this_indel_size = indel_size(read, region, chrom)
-#             print(read.cigar)
-#             #break
-#             print(read)
-# 
-#     #assert False
-#     #assert this_indel_size == 0
-# 
-# 
-# 
-# def test_indel_size():
-#     bamfile = 'test_data/49_L001_R1.STRdecoy.bam'
-#     test_read_name = '1-293'
-#     region = (70713514, 70713561)
-#     fetch_region = (70713514,)
-#     chrom = 'chr13'
-#     bam = pysam.Samfile(bamfile, 'rb')
-#     i = 0
-#     for read in bam.fetch(chrom, *fetch_region):
-#         #print(read.cigar)
-#         try: 
-#             print(indel_size(read, region, chrom))
-#             print(read.cigar)
-#             #break
-#             if read.cigar[0][1] == 150:
-#                 print(read)
-#             #i += 1
-#             
-#             #if i > 1000:
-#             #    break
-#         except ValueError:
-#             continue
-# #    assert False
+def test_locus_counts(outfile = 'test.txt', max_distance = 500):
+    bamfiles = ['test_data/49_L001_R1.STRdecoy.bam']
+    bedfile = '../../reference-data/hg19.simpleRepeat_period1-6_dedup.sorted.bed'
+    locus_counts(bamfiles, bedfile, outfile, max_distance)
