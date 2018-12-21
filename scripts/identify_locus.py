@@ -128,14 +128,16 @@ def indel_size(read, region, chrom = None):
         ValueError: Read does not span the region specified
     """
     ref_start, ref_stop = region
-    cigar = read.cigar
+    cigar = read.cigartuples
     read_start = read.pos
     #XXX throw exception if the read does not align to that chromosome
     if chrom:
         pass
 
     # Iterate through the CIGAR string to extract indel info and the 'footprint' of read on the ref
-    # footprint = matches + deletions
+    # footprint = alignenment match + deletion + skipped + sequence match + sequence mismatch
+    # i.e. anything that consumes reference in the CIGAR
+    consume_ref_cigar = (0,2,3,7,8)
     total_deletion = 0
     total_insertion = 0
     footprint = 0
@@ -144,15 +146,14 @@ def indel_size(read, region, chrom = None):
         for field in cigar:
             this_insertion = 0
             this_deletion = 0
-            if field[0] == 0: # matches
-                footprint += field[1]
-            elif field[0] == 1: # insertions
+            if field[0] == 1: # insertions
                 this_insertion = field[1]
                 total_insertion += this_insertion
             elif field[0] == 2: # deletions
                 this_deletion = field[1]
                 total_deletion += this_deletion
-                footprint += this_deletion
+            if field[0] in consume_ref_cigar: 
+                footprint += field[1]
 
             # test if current position is in the repeat
             current_pos = read_start + footprint
