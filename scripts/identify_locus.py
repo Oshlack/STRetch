@@ -178,6 +178,9 @@ def indel_size(read, region, chrom = None):
 def locus_counts(bamfiles, bedfile, outfile, max_distance):
 
     # Check bamfiles have unique names
+    print(bamfiles, type(bamfiles))
+    if not isinstance(bamfiles, list):
+        raise TypeError('Expecting a list, got {}'.format(type(bamfiles)))
     if len(set(bamfiles)) < len(bamfiles):
         sys.exit('ERROR: There were multiple bamfiles with the same filename. Please check your input')
 

@@ -139,6 +139,11 @@ def test_indel_size_all():
     print( [all_indels[x] for x in all_indels] )
     #assert False
 
+def test_locus_counts_bamlist(outfile = None, max_distance = 500):
+    bamfiles = 'test_data/49_L001_R1.STRdecoy.bam' # This is supposed to be a list so throw error
+    bedfile = '../../reference-data/hg19.simpleRepeat_period1-6_dedup.sorted.bed'
+    with pytest.raises(TypeError):
+        locus_counts(bamfiles, bedfile, outfile, max_distance)
 
 # def test_indel_size_0():
 #     bamfile = 'test_data/49_L001_R1.STRdecoy.bam'
