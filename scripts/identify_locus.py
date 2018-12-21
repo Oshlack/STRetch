@@ -175,14 +175,7 @@ def indel_size(read, region, chrom = None):
     else:
         raise ValueError("Read does not span the region specified") # repeat not contained in read
 
-def main():
-    # Parse command line arguments
-    args = parse_args()
-    bamfiles = args.bam
-    bedfile = args.bed
-    outfile = args.output
-
-    max_distance = args.dist
+def locus_counts(bamfiles, bedfile, outfile, max_distance):
 
     # Check bamfiles have unique names
     if len(set(bamfiles)) < len(bamfiles):
@@ -298,6 +291,17 @@ def main():
     outstring = summed.to_csv(sep='\t', header=False, index=False)
     outstream.write(outstring)
     outstream.close()
+
+def main():
+    # Parse command line arguments
+    args = parse_args()
+    bamfiles = args.bam
+    bedfile = args.bed
+    outfile = args.output
+    max_distance = args.dist
+
+    locus_counts(bamfiles, bedfile, outfile, max_distance)
+
 
 if __name__ == '__main__':
     main()
