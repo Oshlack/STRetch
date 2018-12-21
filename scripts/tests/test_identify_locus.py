@@ -78,16 +78,29 @@ def test_indel_size_nonspanning():
     bamfile = 'test_data/11_L001_R1.STRdecoy.bam'
     test_read_name = '1-3871'
     region = (70713514, 70713561)
-    chrom = 'chr13'
     bam = pysam.Samfile(bamfile, 'rb')
     with pytest.raises(ValueError):
         for read in bam.fetch():
             if read.query_name == test_read_name:
-                indel_size(read, region, chrom)
+                indel_size(read, region)
                 break
 
+def test_indel_size_wrongchr():
+    """Raise ValueError if read doesn't span region because the chromosome doesn't match"""
+    bamfile = 'test_data/49_tests.STRdecoy.sam'
+    test_read_name = '1-293:0'
+    region = (70713514, 70713561)
+    chrom = 'chr5'
+    bam = pysam.Samfile(bamfile, 'rb')
+    with pytest.raises(ValueError) as e:
+        for read in bam.fetch():
+            if read.query_name == test_read_name:
+                indel_size(read, region, chrom)
+                break
+    print(e)
+
 @pytest.mark.parametrize("test_read_name, expected", [
-    ('1-293', 0), # same as ref
+    ('1-293:0', 0), # same as ref
     ('1-293:10I', 10), # easy insertion
     ('1-293:5D', -5), # easy deletion
     ('1-293:0compound', 0), # insertion and deletion same size cancel out

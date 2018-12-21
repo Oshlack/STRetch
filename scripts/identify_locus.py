@@ -130,9 +130,12 @@ def indel_size(read, region, chrom = None):
     ref_start, ref_stop = region
     cigar = read.cigartuples
     read_start = read.pos
-    #XXX throw exception if the read does not align to that chromosome
     if chrom:
-        pass
+        read_chr = read.reference_name
+        if chrom != read_chr:
+            raise ValueError( ("Read does not span the region specified. "
+                "Chromsomes do not match: region chromsome is {}, read is {}"
+                ).format(chrom, read_chr))
 
     # Iterate through the CIGAR string to extract indel info and the 'footprint' of read on the ref
     # footprint = alignenment match + deletion + skipped + sequence match + sequence mismatch
