@@ -15,6 +15,12 @@ def test_randomletters_diff():
     letters2 = randomletters(length)
     assert letters1 != letters2
 
+def test_detect_readlen():
+    bamfile = 'test_data/11_L001_R1.STRdecoy.bam'
+    maxlen, count_noCIGAR = detect_readlen(bamfile, sample = 20)
+    assert maxlen == 150
+    assert count_noCIGAR == 0
+
 # Genotypes
 # ==> 11 <==
 # chr13 70713514 70713561 CTG_16/201

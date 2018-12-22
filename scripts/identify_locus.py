@@ -52,6 +52,8 @@ def detect_readlen(bamfile, sample = 100):
 
     Returns:
         int: The maximum read length observed.
+        int: The number of reads for which a length could not be infered,
+            generally due to missing CIGAR string
     """
     bam = pysam.Samfile(bamfile, 'rb')
     maxlen = 0
