@@ -23,5 +23,5 @@ after_script:
 - head *.tsv
 # Calculate and display code coverage
 - cd $STRetch/scripts/tests/
-- coverage run -m pytest test_identify_locus.py
+- coverage run -m pytest test_*.py
 - bash <(curl -s https://codecov.io/bash) -s .
