@@ -145,11 +145,12 @@ def test_indel_size_allele_freq(bamfile, n, expected):
     bam = pysam.Samfile(bamfile, 'rb')
     all_indels = {}
     for read in bam.fetch():
-       try:
-           all_indels[read.query_name] = indel_size(read, region, chrom)
-           #print(read.is_secondary)
-       except ValueError:
-           continue
+        if read.is_secondary:
+            continue
+        try:
+            all_indels[read.query_name] = indel_size(read, region, chrom)
+        except ValueError:
+            continue
     print(all_indels)
     all_indels_list = [all_indels[x] for x in all_indels]
     alleles_by_frequency = allele_freq(all_indels_list, n)

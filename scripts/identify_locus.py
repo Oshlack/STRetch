@@ -230,8 +230,8 @@ def locus_counts(bamfiles, bedfile, outfile, max_distance):
             all_segments = bam.fetch(reference=chrom)
 
             for read in all_segments:
-                #if read.is_secondary:
-                #    continue
+                if read.is_secondary:
+                    continue
                 total += 1
                 try:
                     mate_chr = read.next_reference_name
