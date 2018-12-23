@@ -15,6 +15,7 @@ import random
 import string
 from decoy_STR import normalise_str
 import sys
+from collections import Counter
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -176,6 +177,21 @@ def indel_size(read, region, chrom = None):
         return repeat_indel
     else:
         raise ValueError("Read does not span the region specified") # repeat not contained in read
+
+def allele_freq(all_alleles, n=None):
+    """Given all alleles at a locus, return a frequency-sorted list of their 
+        counts
+    Args:
+        all_indels: an iterator representing all alleles at a locus
+        n (int): return the most frequent  n alleles
+    Returns:
+        list of tuples in the form (allele, count) ordered from most to least
+            frequent
+    """
+    if n:
+        return Counter(all_alleles).most_common(n)
+    else:
+        return Counter(all_alleles).most_common(n)
 
 def locus_counts(bamfiles, bedfile, outfile, max_distance):
 

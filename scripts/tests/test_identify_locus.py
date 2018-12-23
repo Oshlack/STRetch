@@ -21,14 +21,6 @@ def test_detect_readlen():
     assert maxlen == 150
     assert count_noCIGAR == 0
 
-# Genotypes
-# ==> 11 <==
-# chr13 70713514 70713561 CTG_16/201
-# ==> 49 <==
-# chr13 70713514 70713561 CTG_16/1
-
-#fetch('chr1', 100, 120)
-
 @pytest.mark.parametrize("test_region, target_region, expected", [
     # Easy ones
     ((1,10), (4,6), True),
@@ -127,23 +119,41 @@ def test_indel_size(test_read_name, expected):
             except ValueError:
                 continue
 
-def test_indel_size_all():
+@pytest.mark.parametrize("all_alleles, n, expected", [
+    ([1,1,1,1,0], 2, [(1,4),(0,1)] ), 
+    ([1,1,1,1,0], 1, [(1,4)] ), 
+    ([1,1,1,1], 2, [(1,4)] ), 
+    ([1,1,1,1,0,2,2], None, [(1,4), (2,2), (0,1)] ), 
+])
+def test_allele_freq(all_alleles, n, expected):
+    assert allele_freq(all_alleles, n) == expected
+
+# Genotypes
+# ==> 11 <==
+# chr13 70713514 70713561 CTG_16/201
+# ==> 49 <==
+# chr13 70713514 70713561 CTG_16/1
+
+@pytest.mark.parametrize("bamfile, n, expected", [
+    ('test_data/49_L001_R1.STRdecoy.bam', 2, [(0,11), (3,10)] ),
+    ('test_data/11_L001_R1.STRdecoy.bam', 2, [(0,17)] ),
+])
+def test_indel_size_allele_freq(bamfile, n, expected):
     """Test indel corretly identified"""
-    bamfile = 'test_data/49_tests.STRdecoy.sam'
     region = (70713514, 70713561)
     chrom = 'chr13'
     bam = pysam.Samfile(bamfile, 'rb')
     all_indels = {}
     for read in bam.fetch():
-        if not read.query_name.startswith('1-293'):
-            try:
-                all_indels[read.query_name] = indel_size(read, region, chrom)
-                print(read.is_secondary)
-            except ValueError:
-                continue
+       try:
+           all_indels[read.query_name] = indel_size(read, region, chrom)
+           #print(read.is_secondary)
+       except ValueError:
+           continue
     print(all_indels)
-    print( [all_indels[x] for x in all_indels] )
-    #assert False
+    all_indels_list = [all_indels[x] for x in all_indels]
+    alleles_by_frequency = allele_freq(all_indels_list, n)
+    assert alleles_by_frequency == expected
 
 def test_locus_counts_bamlist(outfile = None, max_distance = 500):
     bamfiles = 'test_data/49_L001_R1.STRdecoy.bam' # This is supposed to be a list so throw error
