@@ -31,7 +31,7 @@ def test_randomletters_len():
     outstream = open('test_decoySTR.output.txt', 'w')
     write_decoys(outstream, seqlength = 20, repeatunits = None)
 
-def test_write_decoys():
+def test_write_decoys_seqlength():
     f = 'test_decoySTR.output.txt'
     with open(f, 'w') as outstream:
         seqlength = 10
@@ -41,3 +41,16 @@ def test_write_decoys():
         all_lines = instream.readlines()
         assert '>STR-A\n' in all_lines
         assert len(all_lines) == 501 * 2
+        assert len(all_lines[1].strip()) == seqlength
+
+def test_write_decoys_repeatunits():
+    f = 'test_decoySTR.output.txt'
+    with open(f, 'w') as outstream:
+        seqlength = None
+        repeatunits = 5
+        write_decoys(outstream, seqlength, repeatunits)
+    with open(f, 'r') as instream:
+        all_lines = instream.readlines()
+        assert '>STR-A\n' in all_lines
+        assert len(all_lines) == 501 * 2
+        assert len(all_lines[5].strip()) == repeatunits * 2
