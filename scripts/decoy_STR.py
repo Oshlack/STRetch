@@ -17,7 +17,7 @@ __license__ = "MIT"
 __version__ = "0.1.0"
 __email__ = "h.dashnow@gmail.com"
 
-def parse_args():
+def parse_args(raw_args):
     """Parse the input arguments, use '-h' for help"""
     parser = ArgumentParser(description='Generate a fasta file containing all ' \
         'possible STR repeat units.')
@@ -34,7 +34,7 @@ def parse_args():
         help='Number of repeat units to simulate for each decoy locus.')
 
 
-    return parser.parse_args()
+    return parser.parse_args(raw_args)
 
 def circular_permuted(x):
     """
@@ -108,9 +108,9 @@ def write_decoys(outstream, seqlength, repeatunits):
                         generic_dna), id='STR-{}'.format(RU), description = '')
         SeqIO.write(record, outstream, "fasta")
 
-def main():
+def main(raw_args):
     # Parse command line arguments
-    args = parse_args()
+    args = parse_args(raw_args)
     if args.output:
         outstream = open(args.output, 'w')
     else:
@@ -122,4 +122,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

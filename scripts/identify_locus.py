@@ -23,7 +23,7 @@ __license__ = "MIT"
 __version__ = "0.1.0"
 __email__ = "h.dashnow@gmail.com"
 
-def parse_args():
+def parse_args(raw_args):
     """Parse the input arguments, use '-h' for help"""
     parser = argparse.ArgumentParser(description='Reports counts of reads mapping to the STR decoy originating each STR locus.')
     parser.add_argument(
@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument(
         '--dist', type=int, required=False, default=500,
         help='Counts are only assigned to an STR locus that is at most this many bp away. The best choice is probably the insert size. (default: %(default)s)')
-    return parser.parse_args()
+    return parser.parse_args(raw_args)
 
 def randomletters(length):
    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
@@ -313,9 +313,9 @@ def locus_counts(bamfiles, bedfile, outfile, max_distance):
     outstream.write(outstring)
     outstream.close()
 
-def main():
+def main(raw_args):
     # Parse command line arguments
-    args = parse_args()
+    args = parse_args(raw_args)
     bamfiles = args.bam
     bedfile = args.bed
     outfile = args.output
@@ -325,4 +325,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

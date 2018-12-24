@@ -54,3 +54,10 @@ def test_write_decoys_repeatunits():
         assert '>STR-A\n' in all_lines
         assert len(all_lines) == 501 * 2
         assert len(all_lines[5].strip()) == repeatunits * 2
+
+def test_parse_args_defaults():
+    """Check correct defaults are set when no options/arguments given"""
+    args = parse_args([])
+    assert args.output == None
+    assert args.length == 500
+    assert args.repeatunits == None

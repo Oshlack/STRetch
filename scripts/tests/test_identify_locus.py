@@ -166,3 +166,15 @@ def test_locus_counts(outfile = 'test.txt', max_distance = 500):
     bamfiles = ['test_data/49_L001_R1.STRdecoy.bam']
     bedfile = '../../reference-data/hg19.simpleRepeat_period1-6_dedup.sorted.bed'
     locus_counts(bamfiles, bedfile, outfile, max_distance)
+
+def test_parse_args_none():
+    """Exit and display usage when no args/options are provided"""
+    with pytest.raises(SystemExit):
+        parser = parse_args([])
+
+def test_parse_args_defaults():
+    """Check correct defaults are set when not given"""
+    args = parse_args(['--bam', 'test.bam'])
+    assert args.bed == None
+    assert args.output == None
+    assert args.dist == 500
