@@ -12,7 +12,7 @@ threads=8
 EXOME_TARGET=""
 
 // STRetch installation location
-STRETCH=""
+STRetch=""
 
 // Paths to tools used by the pipeline
 bpipe="$STRetch/tools/bin/bpipe"
