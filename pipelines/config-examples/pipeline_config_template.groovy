@@ -15,15 +15,17 @@ EXOME_TARGET=""
 STRETCH=""
 
 // Paths to tools used by the pipeline
-bpipe="$STRetch/tools/bin/bpipe"
-python="$STRetch/tools/bin/python"
-goleft="$STRetch/tools/bin/goleft"
-bedtools="$STRetch/tools/bin/bedtools"
-bwa="$STRetch/tools/bin/bwa"
-samtools="$STRetch/tools/bin/samtools"
+bpipe="$STRETCH/tools/bin/bpipe"
+python="$STRETCH/tools/bin/python"
+goleft="$STRETCH/tools/bin/goleft"
+bedtools="$STRETCH/tools/bin/bedtools"
+bwa="$STRETCH/tools/bin/bwa"
+samtools="$STRETCH/tools/bin/samtools"
+bazam="$STRETCH/tools/bin/bazam.jar"
+picard="$STRETCH/tools/bin/picard.jar"
 
 // Path to reference data
-refdir="$STRetch/reference-data"
+refdir="$STRETCH/reference-data"
 
 // Decoy reference assumed to have matching .genome file in the same directory
 REF="$refdir/hg19.STRdecoys.sorted.fasta"
