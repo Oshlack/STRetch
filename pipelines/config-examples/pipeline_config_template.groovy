@@ -22,6 +22,7 @@ bedtools="$STRETCH/tools/bin/bedtools"
 bwa="$STRETCH/tools/bin/bwa"
 samtools="$STRETCH/tools/bin/samtools"
 bazam="$STRETCH/tools/bin/bazam.jar"
+picard="$STRETCH/tools/bin/picard.jar"
 
 // Path to reference data
 refdir="$STRETCH/reference-data"
