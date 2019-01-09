@@ -51,12 +51,12 @@ set_sample_info = {
         // intentionally left blank
 
     } else {
-        // assume fastq.gz inputs which usually follow the format: 
+        // assume fastq.gz inputs which usually follow the format:
         // sample_flowcell_library_lane_read.fastq.gz
         // however sample can also include underscores
         def info = get_info(input)
         if (info.length >= 5) {
-         
+
             //branch.sample = info[0..-5].join("_")
             branch.flowcell = info[-4]
             branch.library = info[-3]
@@ -86,6 +86,24 @@ align_bwa = {
 
 
 @preserve("*.bam")
+align_minimap2 = {
+    doc "Align reads with minimap2 algorithm."
+
+    def fastaname = get_fname(REF)
+    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.STRdecoy.bam') {
+        exec """
+            set -o pipefail
+
+            $minimap2 -a -M -t $threads
+            -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
+            $REF
+            $inputs | $samtools sort -o $output.bam -T $output.bam.prefix
+        """, "minimap2"
+    }
+}
+
+
+@preserve("*.bam")
 align_bwa_bam = {
 
     doc "Align reads with bwa mem algorithm."
@@ -103,13 +121,13 @@ align_bwa_bam = {
     String fastaname = get_fname(REF)
 
 
-    // :$GNGS_JAR 
+    // :$GNGS_JAR
 
     // we construct the output file name by joining the following parts:
     // - the sample id
     // - the shard number (only if parallelism in use)
     // - the file extension '.bam'
-    List outputFileParts = [branch.sample] + 
+    List outputFileParts = [branch.sample] +
                            (bwa_parallelism>1?[shard]:[]) + // empty unless parallelism used
                            ['STRdecoy.bam']
 
@@ -117,7 +135,7 @@ align_bwa_bam = {
         exec """
             set -o pipefail
 
-            java -Xmx16g -Dsamjdk.reference_fasta=$CRAM_REF 
+            java -Xmx16g -Dsamjdk.reference_fasta=$CRAM_REF
                  -jar $bazam
                  -pad $SLOP -n 6
                 $regionFlag $shardFlag -bam ${input[input_type]} |
@@ -192,14 +210,14 @@ STR_locus_counts = {
 }
 
 estimate_size = {
-    
+
     produce("STRs.tsv") {
         if(CONTROL=="") {
              exec """
                 PATH=$PATH:$STRETCH/tools/bin;
                 $python $STRETCH/scripts/estimateSTR.py
-                    --locus_counts $inputs.locus_counts 
-                    --STR_counts $inputs.STR_counts 
+                    --locus_counts $inputs.locus_counts
+                    --STR_counts $inputs.STR_counts
                     --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
             """
@@ -207,8 +225,8 @@ estimate_size = {
             exec """
                 PATH=$PATH:$STRETCH/tools/bin;
                 $python $STRETCH/scripts/estimateSTR.py
-                    --locus_counts $inputs.locus_counts 
-                    --STR_counts $inputs.STR_counts 
+                    --locus_counts $inputs.locus_counts
+                    --STR_counts $inputs.STR_counts
                     --median_cov $inputs.median_cov
                     --model $STRETCH/scripts/STRcov.model.csv
                     --control $CONTROL
@@ -296,7 +314,7 @@ median_cov_target = {
 }
 
 mosdepth_dist = {
-    
+
     doc "Calculate cumulative depth distribution from a bam or cram file"
 
     transform(input_type) to(input.prefix + '.mosdepth.global.dist.txt') {
@@ -322,7 +340,7 @@ mosdepth_dist = {
 mosdepth_median = {
     transform('mosdepth.global.dist.txt') to('median_cov') {
         doc "Calculate the median coverage from mosdepth .dist.txt output"
-    
+
         from('.dist.txt') {
             exec """
                 $python $STRETCH/scripts/mosdepth_median.py --out $output.median_cov $input.txt
