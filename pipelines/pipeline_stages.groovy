@@ -94,7 +94,7 @@ align_minimap2 = {
         exec """
             set -o pipefail
 
-            $minimap2 -a -t $threads
+            $minimap2 -ax sr -t $threads
             -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
             $REF
             $inputs | $samtools sort -o $output.bam -T $output.bam.prefix
