@@ -10,7 +10,7 @@ load 'pipeline_stages.groovy'
 run {
     '%_R*.fastq.gz' * [
         set_sample_info +
-        align_minimap2 + index_bam +
+        align_bwa + index_bam +
         median_cov +
         STR_coverage +
         STR_locus_counts
