@@ -29,7 +29,7 @@ def parse_args():
         '--bam', type=str, required=True, nargs='+',
         help='One or more BAM files of mapped reads e.g. produced by Bowtie2 or BWA. If multiple BAMs all are assumed to come from the same sample.')
     parser.add_argument(
-        '--bed', type=str, required=False,
+        '--bed', type=str, required=True,
         help='bed file containing genomic locations of STR loci. Genomic locations should be relative to the fasta reference used to create the bam')
     parser.add_argument(
         '--output', type=str, required=False,
@@ -85,7 +85,7 @@ def main():
         sys.exit('ERROR: There were multiple bamfiles with the same filename. Please check your input')
 
     #STR_bed = parse_bed(args.bed, position_base=0)
-    STR_bed = bt.BedTool(bedfile)
+    STR_bed = bt.BedTool(bedfile).sort()
 
     all_results = []
     for bamfile in bamfiles:
