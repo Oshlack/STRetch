@@ -173,7 +173,8 @@ def test_parse_args_none():
 
 def test_parse_args_defaults():
     """Check correct defaults are set when not given"""
-    args = parse_args(['--bam', 'test.bam'])
-    assert args.bed == None
+    args = parse_args(['--bam', 'test.bam', '--bed', 'test.bed'])
+    assert args.bam == ['test.bam']
+    assert args.bed == 'test.bed'
     assert args.output == None
     assert args.dist == 500
