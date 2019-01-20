@@ -33,7 +33,10 @@ def parse_args():
         help='bed file containing genomic locations of STR loci. Genomic locations should be relative to the fasta reference used to create the bam')
     parser.add_argument(
         '--output', type=str, required=False,
-        help='Output file name. Defaults to stdout.')
+        help='Output file name for locus counts. Defaults to stdout.')
+    parser.add_argument(
+        '--STR_counts', type=str, required=False,
+        help='Output file name for total counts of reads aligned to each STR decoy chromosome. If not given, these will not be reported.')
     parser.add_argument(
         '--dist', type=int, required=False, default=500,
         help='Counts are only assigned to an STR locus that is at most this many bp away. The best choice is probably the insert size. (default: %(default)s)')
@@ -95,6 +98,13 @@ def main():
         # Read bam
         bam = pysam.Samfile(bamfile, 'rb')
 
+        # Get count of reads aligned to STR decoy chromosomes
+        STR_counts = {}
+        index_stats = bam.get_index_statistics()
+        for x in index_stats:
+            if x.contig.startswith("STR-"):
+                STR_counts[x.contig] = [x.mapped, None] # cols: mapped, both on same decoy
+
         # Get relevant chromosomes
         required_chroms = []
         unpaired = 0
@@ -105,8 +115,8 @@ def main():
         # Check if any STR- chromosomes
         if len(required_chroms) == 0:
            sys.exit('ERROR: There were no reads mapping to chromosomes with names starting with "STR-" in {0}. Are you sure this data is mapped to a reference genome with STR decoy chromosomes?'.format(bamfile))
-
         for chrom in required_chroms:
+            STR_counts[chrom][1] = 0
             motif = chrom.split('-')[1]
             all_positions = []
             all_segments = bam.fetch(reference=chrom)
@@ -121,7 +131,8 @@ def main():
                 mate_start = read.next_reference_start
                 mate_stop = mate_start + readlen
                 all_positions.append([mate_chr, mate_start, mate_stop])
-
+                if mate_chr == chrom: # check if both in pair map to the same STR decoy
+                    STR_counts[chrom][1] += 1
             # Strategy:
             # Merge all overlapping intervals
             # Keep the count of reads corresponding to each merged interval (i.e. 1 for each read contained in it)
@@ -182,6 +193,15 @@ def main():
         sys.stderr.write('WARNING: it appears that {0} of the {1} reads overlapping the target STR regions were unpaired and so no useful data could be obtained from them.\n'.format(unpaired, total))
 
     # Write results
+
+    if args.STR_counts:
+        STR_counts_df = pd.DataFrame.from_dict(STR_counts, orient='index',
+            columns=['decoycov', 'decoycov_pairs'])
+        with open(args.STR_counts, 'w') as STR_outstream:
+            STR_outstring = STR_counts_df.to_csv(sep='\t', header=True, index=True,
+                index_label='chrom')
+            STR_outstream.write(STR_outstring)
+
     if outfile:
         outstream = open(outfile, 'w')
     else:

@@ -32,10 +32,9 @@ run {
             mosdepth_dist + mosdepth_median,
             shards * [
                 init_shard + align_bwa_bam + index_bam 
-            ] + merge_bams
-        ] +
-        STR_coverage +
+            ] + merge_bams +
         STR_locus_counts 
+        ]
     ] +
     estimate_size
 }

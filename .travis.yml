@@ -11,6 +11,7 @@ script:
 # Run the test data
 - ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
 - if diff STRs.tsv ../.testing/STRs.benchmark.tsv; then echo exit 0; else echo exit 1; fi
+#- diff STRs.tsv ../.testing/STRs.benchmark.tsv
 after_script:
 - head *.locus_counts *.STR_counts *.median_cov
 - head *.tsv

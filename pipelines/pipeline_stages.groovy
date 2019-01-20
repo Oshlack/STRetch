@@ -55,9 +55,13 @@ set_sample_info = {
         // sample_flowcell_library_lane_read.fastq.gz
         // however sample can also include underscores
         def info = get_info(input)
-        if (info.length >= 5) {
+        if (info.length == 2) {
          
-            //branch.sample = info[0..-5].join("_")
+            branch.sample = info[0..-2].join("_")
+        }
+       if (info.length >= 5) {
+         
+            branch.sample = info[0..-5].join("_")
             branch.flowcell = info[-4]
             branch.library = info[-3]
             branch.lane = info[-2]
@@ -165,20 +169,9 @@ index_bam = {
     forward input
 }
 
-STR_coverage = {
-    transform("bam") to ("STR_counts") {
-        exec """
-            $bedtools coverage -counts
-            -sorted
-            -g ${REF}.genome
-            -a $DECOY_BED
-            -b $input.bam > $output.STR_counts
-        """
-    }
-}
-
 STR_locus_counts = {
-    transform("bam") to ("locus_counts") {
+    
+    transform("bam") to ("locus_counts", "STR_counts") {
         exec """
             STRPATH=$PATH;
             PATH=$STRETCH/tools/bin:$PATH;
@@ -186,6 +179,7 @@ STR_locus_counts = {
             --bam $input.bam
             --bed $STR_BED
             --output $output.locus_counts
+            --STR_counts $output.STR_counts
             ;PATH=$STRPATH
         """
     }
