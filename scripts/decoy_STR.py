@@ -17,7 +17,7 @@ __license__ = "MIT"
 __version__ = "0.1.0"
 __email__ = "h.dashnow@gmail.com"
 
-def parse_args():
+def parse_args(raw_args):
     """Parse the input arguments, use '-h' for help"""
     parser = ArgumentParser(description='Generate a fasta file containing all ' \
         'possible STR repeat units.')
@@ -34,12 +34,24 @@ def parse_args():
         help='Number of repeat units to simulate for each decoy locus.')
 
 
-    return parser.parse_args()
+    return parser.parse_args(raw_args)
 
 def circular_permuted(x):
+    """
+    Args:
+        x (iterator)
+    Returns:
+        list: All cicular permutations of x
+    """
     return([x[i:] + x[:i] for i in range(len(x))])
 
 def self_and_rev_complement(in_dna):
+    """
+    Args:
+        in_dna (string): DNA sequence
+    Returns:
+        list of strings: The original and reverse complement of in_dna
+    """
     all_possible = [in_dna]
 
     # Get reverse complement
@@ -64,18 +76,14 @@ def normalise_str(in_dna):
     all_possible.sort()
     return(all_possible[0])
 
-def main():
-    # Parse command line arguments
-    args = parse_args()
-    if args.output:
-        outstream = open(args.output, 'w')
-    else:
-        outstream = sys.stdout
-    seqlength = args.length
+def write_decoys(outstream, seqlength, repeatunits):
+    """Write decoy sequences to stream/file
 
-
-    args.length
-
+    Args:
+        outstream: output filehandle/stdout
+        seqlength (int): length of output sequences
+        repeatunits: Number of repeat units to simulate for each decoy locus
+    """
     nucleotides = 'ATCG'
     repeatlenrange = range(1,7) #1-6
     allRUs = []
@@ -89,8 +97,8 @@ def main():
     # Write fasta file
     for RU in allRUs:
         RUlen = len(RU)
-        if args.repeatunits:
-            nrepeats = args.repeatunits
+        if repeatunits:
+            nrepeats = repeatunits
             sequence = ''.join(itertools.repeat(RU, nrepeats))
         else:
             nrepeats = int(seqlength / RUlen + RUlen)
@@ -100,5 +108,18 @@ def main():
                         generic_dna), id='STR-{}'.format(RU), description = '')
         SeqIO.write(record, outstream, "fasta")
 
+def main(raw_args):
+    # Parse command line arguments
+    args = parse_args(raw_args)
+    if args.output:
+        outstream = open(args.output, 'w')
+    else:
+        outstream = sys.stdout
+    seqlength = args.length
+    repeatunits = args.repeatunits
+
+    write_decoys(outstream, seqlength, repeatunits)
+
+
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

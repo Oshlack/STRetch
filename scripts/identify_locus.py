@@ -15,6 +15,7 @@ import random
 import string
 from decoy_STR import normalise_str
 import sys
+from collections import Counter
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -22,7 +23,7 @@ __license__ = "MIT"
 __version__ = "0.1.0"
 __email__ = "h.dashnow@gmail.com"
 
-def parse_args():
+def parse_args(raw_args):
     """Parse the input arguments, use '-h' for help"""
     parser = argparse.ArgumentParser(description='Reports counts of reads mapping to the STR decoy originating each STR locus.')
     parser.add_argument(
@@ -37,7 +38,7 @@ def parse_args():
     parser.add_argument(
         '--dist', type=int, required=False, default=500,
         help='Counts are only assigned to an STR locus that is at most this many bp away. The best choice is probably the insert size. (default: %(default)s)')
-    return parser.parse_args()
+    return parser.parse_args(raw_args)
 
 def randomletters(length):
    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
@@ -52,6 +53,8 @@ def detect_readlen(bamfile, sample = 100):
 
     Returns:
         int: The maximum read length observed.
+        int: The number of reads for which a length could not be infered,
+            generally due to missing CIGAR string
     """
     bam = pysam.Samfile(bamfile, 'rb')
     maxlen = 0
@@ -71,16 +74,131 @@ def detect_readlen(bamfile, sample = 100):
             bam.close()
             return maxlen, count_noCIGAR
 
-def main():
-    # Parse command line arguments
-    args = parse_args()
-    bamfiles = args.bam
-    bedfile = args.bed
-    outfile = args.output
+def spans_region(test_region, target_region):
+    """Check if test_region spans target region.
+    Regions are inclusive of both endpoints.
 
-    max_distance = args.dist
+    Args:
+        test_region tuple/list (int, int)
+        target_region tuple/list (int, int)
+    Returns:
+        bool
+    Raises:
+        TypeError: Incorrectly defined regions.
+    """
+    try:
+        positions = [test_region[0], target_region[0], target_region[1], test_region[1]]
+    except TypeError:
+        raise TypeError( ('Possible cause: expecting 2 positions per region, '
+            'regions specified were {} and {}').format(
+            test_region, target_region))
+    if len(test_region) != 2 or len(target_region) != 2:
+        raise TypeError( ('Possible cause: expecting 2 positions per region, '
+            'regions specified were {} and {}').format(
+            test_region, target_region))
+
+    if positions == sorted(positions): # read spans position
+        return True
+    else:
+        return False
+
+def in_region(position, region):
+    """Check if position is in the region.
+    Regions are inclusive of both endpoints.
+
+    Args:
+        position int
+        region tuple/list (int, int)
+    Returns:
+        bool: True if position is within region, else False
+    """
+    return spans_region(region, (position, position) )
+
+def indel_size(read, region, chrom = None):
+    """
+    Use the CIGAR string to report the total size of all indels in the read, if that read spans the region specified
+    Args:
+        read (pysam alignment object)
+        region (start,stop): tuple containing two integer coordinates of the
+            target on the reference genome
+        chrom (str): chromosome name of the target coordinates.
+            Optional, if provided will check read aligned to that chromosome
+    Returns:
+        indel_size (int): Total size of indel(s) over the STR region of the read
+            (+ive for insertion -ive for deletion)
+    Raises:
+        TypeError: CIGAR string missing
+        ValueError: Read does not span the region specified
+    """
+    ref_start, ref_stop = region
+    cigar = read.cigartuples
+    read_start = read.pos
+    if chrom:
+        read_chr = read.reference_name
+        if chrom != read_chr:
+            raise ValueError( ("Read does not span the region specified. "
+                "Chromsomes do not match: region chromsome is {}, read is {}"
+                ).format(chrom, read_chr))
+
+    # Iterate through the CIGAR string to extract indel info and the 'footprint' of read on the ref
+    # footprint = alignenment match + deletion + skipped + sequence match + sequence mismatch
+    # i.e. anything that consumes reference in the CIGAR
+    consume_ref_cigar = (0,2,3,7,8)
+    total_deletion = 0
+    total_insertion = 0
+    footprint = 0
+    repeat_indel = 0
+    try:
+        for field in cigar:
+            this_insertion = 0
+            this_deletion = 0
+            if field[0] == 1: # insertions
+                this_insertion = field[1]
+                total_insertion += this_insertion
+            elif field[0] == 2: # deletions
+                this_deletion = field[1]
+                total_deletion += this_deletion
+            if field[0] in consume_ref_cigar: 
+                footprint += field[1]
+
+            # test if current position is in the repeat
+            current_pos = read_start + footprint
+
+            if in_region(current_pos, (ref_start, ref_stop)):
+                repeat_indel += this_insertion
+                repeat_indel -= this_deletion
+
+    except TypeError:
+        raise TypeError("CIGAR string missing")
+
+    # check if the read covers the entire repeat
+    read_end = read_start + footprint
+    if spans_region((read_start, read_end), (ref_start, ref_stop)): # read spans position
+        return repeat_indel
+    else:
+        raise ValueError("Read does not span the region specified") # repeat not contained in read
+
+def allele_freq(all_alleles, n=None):
+    """Given all alleles at a locus, return a frequency-sorted list of their 
+        counts
+    Args:
+        all_indels: an iterator representing all alleles at a locus
+        n (int): return the most frequent  n alleles
+    Returns:
+        list of tuples in the form (allele, count) ordered from most to least
+            frequent
+    """
+    if n:
+        return Counter(all_alleles).most_common(n)
+    else:
+        return Counter(all_alleles).most_common(n)
+
+def locus_counts(bamfiles, bedfile, outfile, max_distance):
 
     # Check bamfiles have unique names
+    print(bamfiles, type(bamfiles))
+    if not isinstance(bamfiles, list):
+        raise TypeError('Expecting a list, got {}'.format(type(bamfiles)))
     if len(set(bamfiles)) < len(bamfiles):
         sys.exit('ERROR: There were multiple bamfiles with the same filename. Please check your input')
 
@@ -112,6 +230,8 @@ def main():
             all_segments = bam.fetch(reference=chrom)
 
             for read in all_segments:
+                #if read.is_secondary:
+                #    continue
                 total += 1
                 try:
                     mate_chr = read.next_reference_name
@@ -193,5 +313,16 @@ def main():
     outstream.write(outstring)
     outstream.close()
 
+def main(raw_args):
+    # Parse command line arguments
+    args = parse_args(raw_args)
+    bamfiles = args.bam
+    bedfile = args.bed
+    outfile = args.output
+    max_distance = args.dist
+
+    locus_counts(bamfiles, bedfile, outfile, max_distance)
+
+
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

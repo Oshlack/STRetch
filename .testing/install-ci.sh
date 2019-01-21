@@ -30,7 +30,7 @@ jarfiles="bazam picard"
 
 #installation method
 function bpipe_install {
-    wget -O bpipe-0.9.9.5.tar.gz https://github.com/ssadedin/bpipe/releases/download/0.9.9.5/bpipe-0.9.9.5.tar.gz
+    wget -nv -O bpipe-0.9.9.5.tar.gz https://github.com/ssadedin/bpipe/releases/download/0.9.9.5/bpipe-0.9.9.5.tar.gz
     tar -zxvf bpipe-0.9.9.5.tar.gz ; rm bpipe-0.9.9.5.tar.gz
     ln -s $PWD/bpipe-0.9.9.5/bin/* $PWD/bin/
 }
@@ -38,7 +38,7 @@ function bpipe_install {
 # Installs miniconda, Python 3 + required packages, BedTools and goleft
 # (and any other dependancies listed in environment.yml)
 function python_install {
-    wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    wget -nv -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     bash miniconda.sh -b -p $PWD/miniconda
     rm miniconda.sh
     $PWD/miniconda/bin/conda env create -f ../environment.yml
@@ -47,32 +47,32 @@ function python_install {
 }
 
 function bwa_install {
-    wget -O bwakit-0.7.15_x64-linux.tar.bz2 --no-check-certificate https://github.com/lh3/bwa/releases/download/v0.7.15/bwakit-0.7.15_x64-linux.tar.bz2
+    wget -nv -O bwakit-0.7.15_x64-linux.tar.bz2 --no-check-certificate https://github.com/lh3/bwa/releases/download/v0.7.15/bwakit-0.7.15_x64-linux.tar.bz2
     tar -jxvf bwakit-0.7.15_x64-linux.tar.bz2
     rm bwakit-0.7.15_x64-linux.tar.bz2
     ln -s $PWD/bwa.kit/* $PWD/bin/
 }
 
 function samtools_install {
-    wget --no-check-certificate https://github.com/samtools/samtools/releases/download/1.8/samtools-1.8.tar.bz2
+    wget -nv --no-check-certificate https://github.com/samtools/samtools/releases/download/1.8/samtools-1.8.tar.bz2
     tar -jxvf samtools-1.8.tar.bz2
     rm samtools-1.8.tar.bz2
     make prefix=$PWD install -C samtools-1.8/
 }
 
 function bazam_install {
-    wget --no-check-certificate https://github.com/ssadedin/bazam/releases/download/1.0.1/bazam.jar
+    wget -nv --no-check-certificate https://github.com/ssadedin/bazam/releases/download/1.0.1/bazam.jar
     ln -s $PWD/bazam.jar $PWD/bin/bazam.jar
 
 }
 
 function picard_install {
-    wget https://github.com/broadinstitute/picard/releases/download/2.18.9/picard.jar
+    wget -nv https://github.com/broadinstitute/picard/releases/download/2.18.9/picard.jar
     ln -s $PWD/picard.jar $PWD/bin/picard.jar
 }
 
 function download {
-    wget --no-check-certificate -O $refdir/reference-data.zip https://ndownloader.figshare.com/articles/5353399/versions/1
+    wget -nv --no-check-certificate -O $refdir/reference-data.zip https://ndownloader.figshare.com/articles/5353399/versions/1
     unzip $refdir/reference-data.zip -d $refdir
     rm $refdir/reference-data.zip
 
