@@ -25,7 +25,7 @@ if [ ! -f $toolspec ] ; then
 fi
 
 #a list of which programs need to be installed
-commands="bpipe python goleft bedtools bwa minimap2 samtools mosdepth"
+commands="bpipe python goleft bedtools bwa samtools mosdepth"
 jarfiles="bazam picard"
 
 #installation method
@@ -51,13 +51,6 @@ function bwa_install {
     tar -jxvf bwakit-0.7.15_x64-linux.tar.bz2
     rm bwakit-0.7.15_x64-linux.tar.bz2
     ln -s $PWD/bwa.kit/* $PWD/bin/
-}
-
-function minimap2_install {
-    wget -O minimap2-2.14_x64-linux.tar.bz2 --no-check-certificate https://github.com/lh3/minimap2/releases/download/v2.14/minimap2-2.14_x64-linux.tar.bz2
-    tar -jxvf minimap2-2.14_x64-linux.tar.bz2
-    rm minimap2-2.14_x64-linux.tar.bz2
-    ln -s $PWD/minimap2*/* $PWD/bin/
 }
 
 function samtools_install {
