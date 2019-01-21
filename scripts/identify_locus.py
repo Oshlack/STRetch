@@ -196,7 +196,7 @@ def allele_freq(all_alleles, n=None):
 def locus_counts(bamfiles, bedfile, outfile, max_distance):
 
     # Check bamfiles have unique names
-    print(bamfiles, type(bamfiles))
+    #print(bamfiles, type(bamfiles))
     if not isinstance(bamfiles, list):
         raise TypeError('Expecting a list, got {}'.format(type(bamfiles)))
     if len(set(bamfiles)) < len(bamfiles):
