@@ -13,7 +13,7 @@ def main():
                      values=['locuscoverage', 'outlier', 'p_adj', 'bpInsertion', 'repeatUnits'])
     for feature in ['locuscoverage', 'outlier', 'bpInsertion', 'repeatUnits']:
         pivot.loc[:, (feature, "max")] = pivot[feature].max(axis="columns")
-    pivot.loc[:, ('p_adj', "min")] = pivot[feature].min(axis="columns")
+    pivot.loc[:, ('p_adj', "min")] = pivot['p_adj'].min(axis="columns")
 
     pivot.columns = ['_'.join(col).strip() for col in pivot.columns.values]
     print(
