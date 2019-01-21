@@ -86,24 +86,6 @@ align_bwa = {
 
 
 @preserve("*.bam")
-align_minimap2 = {
-    doc "Align reads with minimap2 algorithm."
-
-    def fastaname = get_fname(REF)
-    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.STRdecoy.bam') {
-        exec """
-            set -o pipefail
-
-            $minimap2 -ax sr -t $threads
-            -R "@RG\\tID:${sample}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
-            $REF
-            $inputs | $samtools sort -o $output.bam -T $output.bam.prefix
-        """, "minimap2"
-    }
-}
-
-
-@preserve("*.bam")
 align_bwa_bam = {
 
     doc "Align reads with bwa mem algorithm."
