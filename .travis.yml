@@ -14,7 +14,7 @@ script:
 # Unit tests
 - cd $STRetch/scripts/tests/
 - source $STRetch/tools/miniconda/bin/activate $STRetch/tools/miniconda/envs/STR
-- python -m pytest test_identify_locus.py
+- python -m pytest test_*.py
 after_script:
 # View output files
 - cd $STRetch/test/
