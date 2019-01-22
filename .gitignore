@@ -1,0 +1,4 @@
+pipelines/bpipe.config
+pipelines/pipeline_config.groovy
+pipelines/pipeline_config.groovy.backup
+pipelines/pipeline_stages.groovy.backup

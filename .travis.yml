@@ -11,7 +11,6 @@ script:
 # End-to-end test
 - cd $STRetch/test/
 - ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
-- if diff STRs.tsv ../.testing/STRs.benchmark.tsv; then echo exit 0; else echo exit 1; fi
 # Unit tests
 - cd $STRetch/scripts/tests/
 - source $STRetch/tools/miniconda/bin/activate $STRetch/tools/miniconda/envs/STR
@@ -19,6 +18,7 @@ script:
 after_script:
 # View output files
 - cd $STRetch/test/
+- diff STRs.tsv ../.testing/STRs.benchmark.tsv
 - head *.locus_counts *.STR_counts *.median_cov
 - head *.tsv
 # Calculate and display code coverage
