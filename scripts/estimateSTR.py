@@ -390,6 +390,7 @@ def main():
     write_data = locus_totals[['chrom', 'start', 'end',
                                     'sample', 'repeatunit', 'reflen',
                                     'locuscoverage', 'total_assigned',
+                                    'locuscoverage_log', 'total_assigned_log', 'genomecov',
                                     'outlier', 'p_adj',
                                     'bpInsertion', 'repeatUnits', 'repeatUnits_max'
                                     ]]
