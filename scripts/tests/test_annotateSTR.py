@@ -19,16 +19,37 @@ def test_parse_args_none():
     with pytest.raises(SystemExit):
         parser = parse_args([])
 
+@pytest.mark.parametrize("prefix, n, expected", [
+    ('col_', 2, ['col_0', 'col_1']),
+])
+def test_make_colnames(prefix, n, expected):
+    assert make_colnames(prefix, n) == expected
+
+def test_bt_annotate_df():
+    data_dir = '/Users/harriet.dashnow/Documents/git/STR-variation/data/'
+    target_df = pd.read_csv(data_dir + 'test.tsv', sep='\t')
+    annotation_file = data_dir + 'hg19_gencodeV19_comp.gtf.gz'
+    annotated_df = bt_annotate_df(target_df, annotation_file)
+
 def test_annotate_gff():
     data_dir = '/Users/harriet.dashnow/Documents/git/STR-variation/data/'
     target_df = pd.read_csv(data_dir + 'test.tsv', sep='\t')
     annotate_gff(target_df,
     annotation_file=data_dir + 'hg19_gencodeV19_comp.gtf.gz',
-    tmp_bed='tmp.bed',
+    #tmp_bed='tmp.bed',
     annotation_cols=['attribute'])
+
+def test_annotate_bed():
+    data_dir = '/Users/harriet.dashnow/Documents/git/STR-variation/data/'
+    target_df = pd.read_csv(data_dir + 'test.tsv', sep='\t')
+    annotated_df = annotate_bed(target_df,
+    bed_file=data_dir + 'hg19.STR_disease_loci.bed',
+    bed_colnames=['chrom', 'start', 'end', 'pathogenic']
+    )
 
 def test_annotateSTRs():
     data_dir = '/Users/harriet.dashnow/Documents/git/STR-variation/data/'
     str_file = data_dir + 'test.tsv'
     annotation_file = data_dir + 'hg19_gencodeV19_comp.gtf.gz'
-    annotateSTRs(str_file, annotation_file)
+    bed_file=data_dir + 'hg19.STR_disease_loci.bed'
+    annotateSTRs(str_file, annotation_file, bed_file)

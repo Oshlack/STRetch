@@ -108,27 +108,50 @@ def split_anntotation_col(annotation):
     #return([ann_dict[i][0] for i in ann_dict])
     return(pd.Series(ann_dict))
 
-def bt_annotate_df(target_df, annotation_file):
+def make_colnames(prefix, n):
+    """ Make colnames in the form prefix+int. For example:
+        prefix0, prefix1 ... prefix(n-1)
+    Args:
+        prefix (str): prefix to add to start of each name
+        n (int): number of names to create
+    Returns:
+        list of strings
+    """
+    return([prefix + str(i) for i in range(n)])
+
+def bt_annotate_df(target_df, annotation_file, annotation_colnames = None,
+    tmp_bed = None):
     """Takes a pandas data frame (target_df), and returns it with new columns
     from an annotation supported by bedtools (e.g. bed/gff/gtf).
     Args:
         target_df (pandas.DataFrame): must be bed-compatible
         annotation_file (str): path to a gff/gtf file
-        annotation_cols (list): columns from annotation_file to include in
-            output (default = all)
-        split_attribute (bool): Replace attribute column multiple columns by
-            splitting it on ';'
-        null: null value to use, will be '.' if no annotation available at that locus
+        annotation_colnames (list): names for annotation_file columns (must
+            match number of columns in annotation file)
         tmp_bed: path for bedtools temporary file. Default: randomly generated
             filename in form tmp-XXXXXXXX.bed in current directory.
     Returns:
         pandas.DataFrame
     """
-    pass
+    target_bed = dataframe_to_bed(target_df)
+    target_colnames = list(target_df)
+    # temp file for bedtools to write to and pandas to read
+    if not tmp_bed:
+        tmp_bed = 'tmp-' + randomletters(8) + '.bed'
+    target_bed.intersect(b=annotation_file, loj=True, wb=True).saveas(tmp_bed)
+    annotated_df = pd.read_csv(tmp_bed, sep='\t', header=None)
+    # if column names not provided for annotation file, make some up
+    if not annotation_colnames:
+        n_annotation_colnames = len(annotated_df.columns) - len(target_colnames)
+        annotation_colnames = make_colnames('annotation_', n_annotation_colnames)
+    colnames = target_colnames + annotation_colnames
 
+    annotated_df.columns = colnames
+    os.remove(tmp_bed) #delete temporary file
+    return(annotated_df)
 
 def annotate_gff(target_df, annotation_file, annotation_cols = None,
-    split_attribute = True, null = '.', tmp_bed = None):
+    split_attribute = True):
     """Takes a pandas data frame (target_df) and returns it with a new column
     of annotation from a gff/gtf file (annotation_file).
     Args:
@@ -138,27 +161,18 @@ def annotate_gff(target_df, annotation_file, annotation_cols = None,
             output (default = all)
         split_attribute (bool): Replace attribute column multiple columns by
             splitting it on ';'
-        null: null value to use, will be '.' if no annotation available at that locus
-        tmp_bed: path for bedtools temporary file. Default: randomly generated
-            filename in form tmp-XXXXXXXX.bed in current directory.
     Returns:
         pandas.DataFrame
     """
-    gff_colnames = ['seqname', 'source', 'feature', 'start', 'end', 'score',
+    gff_colnames = ['seqname', 'source', 'feature', 'ann_start', 'ann_end', 'score',
                     'strand', 'frame', 'attribute']
-
-    target_bed = dataframe_to_bed(target_df)
     target_colnames = list(target_df)
 
-    # temp file for bedtools to write to and pandas to read
-    if not tmp_bed:
-        tmp_bed = 'tmp-' + randomletters(8) + '.bed'
-    target_bed.intersect(b=annotation_file, loj=True, wb=True).saveas(tmp_bed)
-    colnames = target_colnames + gff_colnames
-    annotated_df = pd.read_csv(tmp_bed, sep='\t', header=None)
-    annotated_df.columns = colnames
-    os.remove(tmp_bed) #delete temporary file
+    annotated_df = bt_annotate_df(target_df, annotation_file,
+        annotation_colnames = gff_colnames)
 
+    #XXX check if there are any duplicate colnames and throw an error (need to
+    # do with is other functions, so write a generic function to do it?)
     if annotation_cols:
         colnames_to_keep = target_colnames + annotation_cols
         annotated_df = annotated_df[colnames_to_keep]
@@ -170,57 +184,57 @@ def annotate_gff(target_df, annotation_file, annotation_cols = None,
 
     return annotated_df
 
-#annotated_df.to_csv('tmp.tsv', sep='\t', index=False)
+def annotate_bed(target_df, bed_file, bed_colnames = None):
+    """Takes a pandas data frame (target_df) and returns it with new column(s)
+    of annotation from a bed file. Keeps the fourth and subsequent bed columns.
+    Args:
+        target_df (pandas dataframe): must be bed-compatible
+        bed_file (str): path to a bed file
+        bed_colnames (list): names of all bed columns (must match number of
+            columns in bed file)
+    Returns:
+        pandas.DataFrame
+    """
+    annotated_df = bt_annotate_df(target_df, bed_file)
 
-def annotateSTRs(strfile, annfile):
+    # Fix up column names and remove those not required
+    minimal_bed_colnames = ['bed_chrom', 'bed_start', 'bed_end']
+    prefix = 'bed_annotation_' #XXX replace with filename?
+    target_colnames = list(target_df)
+    if bed_colnames:
+        bed_colnames[:len(minimal_bed_colnames)] = minimal_bed_colnames
+        colnames =  target_colnames + bed_colnames
+    else:
+        bed_colnames = minimal_bed_colnames
+        n_bed_cols = len(annotated_df.columns) - len(target_colnames)
+        bed_colnames = minimal_bed_colnames + make_colnames(prefix,
+            n_bed_cols - len(minimal_bed_colnames))
+        colnames = target_colnames + bed_colnames
+
+    annotated_df.columns = colnames
+    annotated_df = annotated_df.drop(minimal_bed_colnames, axis=1)
+
+    return annotated_df
+
+
+def annotateSTRs(strfile, annfile, path_bed):
 
     with open(strfile) as str_fhandle:
         str_df = pd.read_csv(str_fhandle, sep='\t')
         str_annotated = annotate_gff(str_df,
             annotation_file=annfile,
-            annotation_cols=['attribute'])
+            annotation_cols=['feature','attribute'])
+
+        if path_bed:
+            str_annotated = annotate_bed(str_annotated, path_bed,
+                bed_colnames=['bed_chrom', 'bed_start', 'bed_end', 'pathogenic'])
     return str_annotated
-
-
-
-    # Create an annotation master bed file
-    # Use bed arithmetic to get a file with a single annotation (exon, intron
-    # etc) for each position in the genome
-
-    # ann_names = [x.split('.bed.sorted')[0].split('_')[-1] for x in annfiles]
-    # ann_beds = [bt.BedTool(bedfile) for bedfile in annfiles]
-
-#    bedfile1 = annfiles[0]
-#    ann_name1 = bedfile1.split('.bed.sorted')[0].split('_')[-1]
-#    bed1 = bt.BedTool(bedfile1)
-#
-#    bedfile2 = annfiles[1]
-#    ann_name2 = bedfile2.split('.bed.sorted')[0].split('_')[-1]
-#    bed2 = bt.BedTool(bedfile2)
-
-    # Subtract bed files from each other
-    # cat_bed = bt.BedTool.cat(*ann_beds[:-1], postmerge=True, force_truncate=True)
-    # ann_beds[0].merge().subtract(cat_bed)
-    # sys.exit()
-    # bed_sub = ann_beds[0].merge().subtract(*bt.BedTool.cat(ann_beds[:-1],
-    #                                 postmerge=True, force_truncate=True))
-    # bed_sub.saveas('combined_annotation.bed')
-    #bed2_sub = ann_beds[1].merge().subtract(ann_beds[0].merge())
-    #bed2_sub.saveas('combined_annotation.bed')
-
-#    with open(strfile) as str_fhandle:
-#        str_df = pd.read_csv(str_fhandle, sep='\t')
-#
-#        str_df_annotated = annotate_bed(str_df, pathfile, "pathlocus")
-#        str_df_annotated = annotate_bed(str_df_annotated, genefile, "gene")
-#
-#        str_df_annotated.to_csv(outfile, sep='\t')
 
 def main(raw_args):
     # Parse command line arguments
     args = parse_args(raw_args)
     strfile = args.STRs_tsv
-    # pathfile = args.path
+    pathfile = args.path_bed
     # genefile = args.genes
     annfile = args.annotation
     outfile = args.output
@@ -230,7 +244,8 @@ def main(raw_args):
     else:
         outstream = sys.stdout
 
-    outstream.write(annotateSTRs(strfile, annfile))
+    annotated_df = annotateSTRs(strfile, annfile, pathfile)
+    outstream.write(annotated_df.to_csv())
     outstream.close()
 
 
