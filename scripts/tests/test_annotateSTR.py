@@ -3,6 +3,12 @@ sys.path.append("..")
 from annotateSTR import *
 import pytest
 
+# Define some input/output files that are shared between tests
+str_file = 'test_data/test.tsv'
+str_file_annotated = 'test_data.annotated.tsv'
+annotation_file = 'test_data/hg19_gencodeV19_comp.gtf.gz'
+disease_bed = 'test_data/hg19.STR_disease_loci.bed'
+
 # Currently working with hg19_gencodeV19_comp.gtf
 # other formats not working
 @pytest.mark.parametrize("annotation, expected", [
@@ -26,26 +32,30 @@ def test_make_colnames(prefix, n, expected):
     assert make_colnames(prefix, n) == expected
 
 def test_bt_annotate_df():
-    target_df = pd.read_csv('test_data/test.tsv', sep='\t')
-    annotation_file = 'test_data/hg19_gencodeV19_comp.gtf.gz'
+    target_df = pd.read_csv(str_file, sep='\t')
     annotated_df = bt_annotate_df(target_df, annotation_file)
 
 def test_annotate_gff():
-    target_df = pd.read_csv('test_data/test.tsv', sep='\t')
+    target_df = pd.read_csv(str_file, sep='\t')
     annotate_gff(target_df,
-    annotation_file='test_data/hg19_gencodeV19_comp.gtf.gz',
+    annotation_file,
     #tmp_bed='tmp.bed',
     annotation_cols=['attribute'])
 
 def test_annotate_bed():
-    target_df = pd.read_csv('test_data/test.tsv', sep='\t')
+    target_df = pd.read_csv(str_file, sep='\t')
     annotated_df = annotate_bed(target_df,
-    bed_file='test_data/hg19.STR_disease_loci.bed',
+    bed_file=disease_bed,
     bed_colnames=['chrom', 'start', 'end', 'pathogenic']
     )
 
 def test_annotateSTRs():
-    str_file = 'test_data/test.tsv'
-    annotation_file = 'test_data/hg19_gencodeV19_comp.gtf.gz'
-    bed_file='test_data/hg19.STR_disease_loci.bed'
-    annotateSTRs(str_file, annotation_file, bed_file)
+    bed_file=disease_bed
+    str_annotated = annotateSTRs(str_file, annotation_file, bed_file)
+    str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
+
+def test_dedup_annotations():
+    str_df = pd.read_csv(str_file_annotated, sep='\t')
+    str_df_dedup = dedup_annotations(str_df)
+    str_df_dedup.to_csv('tmp-dedup.tsv', sep='\t', index = False)
+    assert len(str_df_dedup.index) == 2
