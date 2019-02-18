@@ -234,16 +234,12 @@ def main(raw_args):
     annfile = args.annotation
     outfile = args.output
 
-    if outfile:
-        outstream = open(outfile, 'w')
-    else:
-        outstream = sys.stdout
-
     annotated_df = annotateSTRs(strfile, annfile, pathfile)
-    outstream.write(annotated_df.to_csv())
-    outstream.close()
 
-
+    if outfile:
+        annotated_df.to_csv(outfile, sep='\t', index = False)
+    else:
+        sys.stdout.write(annotated_df.to_csv(sep='\t', index = False))
 
 if __name__ == '__main__':
     main(sys.argv[1:])
