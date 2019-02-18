@@ -63,7 +63,7 @@ def parse_gff_annotation(annotation):
     for field in fields:
         # Strip whitespace
         field_list = [x.strip() for x in field.split() if not x == '']
-        if len(field_list) == 0:
+        if len(field_list) == 0 or field == '.':
             continue # ignore empty fields
         elif len(field_list) == 2:
             name = field_list[0].strip('"')
