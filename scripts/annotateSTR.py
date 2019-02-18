@@ -41,37 +41,11 @@ def randomletters(length):
    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
 
 def dataframe_to_bed(df):
-    """Convert pandas dataframe to BedTool object
+    """Convert pandas.DataFrame to BedTool object
     """
     df_asString = ['\t'.join([str(y) for y in x]) for x in df.values.tolist()]
     bed = bt.BedTool(df_asString)
     return(bed)
-
-def annotate_bed(target_df, annotation_bed, column_heading=None):
-    """Takes a pandas data frame (target_df) of STRetch output, and return it
-        with a new column of annotation from the bed file (annotation_bed).
-        '.' if no annotation available at that locus. Only the first column
-        in the bed file (after the positions) is used as annotation."""
-
-    if not column_heading:
-        column_heading = annotation_bed
-    #convert data frame to list of strings so that bedtools can read it in
-    target_df_asString = ['\t'.join([str(y) for y in x]) for x in target_df.values.tolist()]
-    target_bed = bt.BedTool(target_df_asString)
-    target_colnames = list(target_df)
-
-    with open(annotation_bed) as annotation_fhandle:
-        annotation_bed = bt.BedTool(annotation_fhandle)
-        tmp_bed = 'tmp-' + randomletters(8) + '.bed' #temp file for bedtools to write to and pandas to read
-        target_bed.intersect(b=annotation_bed, loj=True).saveas(tmp_bed)
-        colnames = target_colnames + ['match_chr', 'match_start', 'match_end', column_heading]
-        annotated_df = pd.read_csv(tmp_bed, sep='\t', header=None)
-        annotated_df = annotated_df.iloc[:,:len(colnames)] # remove following columns
-        annotated_df.columns = colnames
-        annotated_df.drop(['match_chr', 'match_start', 'match_end'], axis=1, inplace=True)
-        os.remove(tmp_bed) #delete temporary file
-
-    return annotated_df
 
 # Currently working with hg19_gencodeV19_comp.gtf
 # other formats not working
