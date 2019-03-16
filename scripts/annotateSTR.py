@@ -214,8 +214,25 @@ def dedup_annotations(str_df):
     str_df_dedup = str_df.groupby(id_columns).first().reset_index()
     return str_df_dedup[column_order]
 
-def annotateSTRs(strfile, annfile, path_bed):
+def sortSTRs(str_df):
+    """sort by outlier score then estimated size (bpInsertion), both descending
+    Args:
+        str_df (pandas.DataFrame): annotated STRetch results
+    Returns:
+        pandas.DataFrame
+    """
+    return(str_df.sort_values(['outlier', 'bpInsertion'], ascending=[False, False]))
 
+def annotateSTRs(strfile, annfile, path_bed):
+    """Take a STRetch results file and annotate it with a gene annotation file
+    and pathogenic loci from a bed file.
+    Args:
+        strfile (str): path to a STRetch results file
+        annfile (str): path to a gff/gtf file of gene annotations
+        path_bed (str): path to a bed file containing pathogenic loci
+    Returns:
+        pandas.DataFrame
+    """
     with open(strfile) as str_fhandle:
         str_df = pd.read_csv(str_fhandle, sep='\t')
         str_annotated = annotate_gff(str_df,
@@ -225,7 +242,10 @@ def annotateSTRs(strfile, annfile, path_bed):
         if path_bed:
             str_annotated = annotate_bed(str_annotated, path_bed,
                 bed_colnames=['bed_chrom', 'bed_start', 'bed_end', 'pathogenic'])
-    return dedup_annotations(str_annotated)
+    #Dedup and sort
+    str_annotated = dedup_annotations(str_annotated)
+    str_annotated = sortSTRs(str_annotated)
+    return str_annotated
 
 def main(raw_args):
     # Parse command line arguments

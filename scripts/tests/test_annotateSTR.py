@@ -51,13 +51,26 @@ def test_annotate_bed():
     bed_colnames=['chrom', 'start', 'end', 'pathogenic']
     )
 
-def test_annotateSTRs():
-    bed_file=disease_bed
-    str_annotated = annotateSTRs(str_file, annotation_file, bed_file)
-    str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
-
 def test_dedup_annotations():
     str_df = pd.read_csv(str_file_annotated, sep='\t')
     str_df_dedup = dedup_annotations(str_df)
     str_df_dedup.to_csv('tmp-dedup.tsv', sep='\t', index = False)
     assert len(str_df_dedup.index) == 2
+
+@pytest.mark.parametrize("str_dict, expected", [
+    ({'outlier': [5, 10], 'bpInsertion': [100, 40]},
+    {'outlier': [10, 5], 'bpInsertion': [40, 100]}),
+    # sort by bpInsertion if outlier missing or identical
+    ({'outlier': [None, None], 'bpInsertion': [10, 40]},
+    {'outlier': [None, None], 'bpInsertion': [40, 10]}),
+])
+def test_sortSTRs(str_dict, expected):
+    str_df = pd.DataFrame(data=str_dict)
+    str_df_sorted = sortSTRs(str_df)
+    str_df_sorted.to_csv('tmp-sorted.tsv', sep='\t', index = False)
+    assert str_df_sorted.reset_index(drop=True).equals(pd.DataFrame(expected))
+
+def test_annotateSTRs():
+    bed_file=disease_bed
+    str_annotated = annotateSTRs(str_file, annotation_file, bed_file)
+    str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
