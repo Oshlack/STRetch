@@ -14,6 +14,8 @@ disease_bed = 'test_data/hg19.STR_disease_loci.bed'
 @pytest.mark.parametrize("annotation, expected", [
     ('gene_id ""ENST00000414504.2""; transcript_id ""ENST00000414504.2""; ',
         {'gene_id': 'ENST00000414504.2', 'transcript_id': 'ENST00000414504.2'} ),
+    ('gene_id """"; transcript_id "".""; ',
+        {'gene_id': 'NA', 'transcript_id': 'NA'} ),
     # ('gene_id ""someval""; transcript_id val1 val2; ',
     #     {'gene_id': ['someval'], 'transcript_id': ['val1', 'val2']} ),
 ])

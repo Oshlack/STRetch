@@ -68,11 +68,12 @@ def parse_gff_annotation(annotation):
         elif len(field_list) == 2:
             name = field_list[0].strip('"')
             value = field_list[1].strip('"')
+            if value == '.' or value == '':
+                value = 'NA'
             annotation_dict[name] = value
         else:
             raise Exception(('unexpected number of attributes in field '
                                 '(expecting 2): {}').format(field))
-
     return annotation_dict
 
 def split_anntotation_col(annotation):
@@ -114,14 +115,15 @@ def bt_annotate_df(target_df, annotation_file, annotation_colnames = None,
         tmp_bed = 'tmp-' + randomletters(8) + '.bed'
     target_bed.intersect(b=annotation_file, loj=True, wb=True).saveas(tmp_bed)
     annotated_df = pd.read_csv(tmp_bed, sep='\t', header=None)
+    os.remove(tmp_bed) #delete temporary file
     # if column names not provided for annotation file, make some up
     if not annotation_colnames:
         n_annotation_colnames = len(annotated_df.columns) - len(target_colnames)
         annotation_colnames = make_colnames('annotation_', n_annotation_colnames)
     colnames = target_colnames + annotation_colnames
-
     annotated_df.columns = colnames
-    os.remove(tmp_bed) #delete temporary file
+    # Replace '.' (missing values from bedtools) with NA
+    annotated_df.replace('.','NA', inplace=True)
     return(annotated_df)
 
 def annotate_gff(target_df, annotation_file, annotation_cols = None,
