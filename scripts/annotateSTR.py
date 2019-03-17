@@ -27,7 +27,7 @@ def parse_args(raw_args):
     #     help='BED file containing the locations of genes.')
     parser.add_argument(
         '--annotation', type=str,
-        help='GTF/GFF genome annotation file (can be gzipped)')
+        help='GFF3 genome annotation file (can be gzipped)')
     parser.add_argument(
             '--ids', type=str,
             help='Gene IDs and their corresponding gene names/symbols') #XXX describe format
@@ -47,14 +47,12 @@ def dataframe_to_bed(df):
     bed = bt.BedTool(df_asString)
     return(bed)
 
-# Currently working with hg19_gencodeV19_comp.gtf
-# other formats not working
 def parse_gff_annotation(annotation):
     """
-    Currently expecting only two columns in the annotation
+    Parse the annotation column of a GFF3 format genome annotation file into a
+    pandas data frame
     Args:
-        annotation (str): the string of a single line in the GTF annotation
-            column
+        annotation (str): annotation column from a single line in a GFF3 file
     Returns:
         pandas.DataFrame
     """
@@ -62,25 +60,19 @@ def parse_gff_annotation(annotation):
     fields = annotation.split(';')
     for field in fields:
         # Strip whitespace
-        field_list = [x.strip() for x in field.split() if not x == '']
+        field_list = [x.strip() for x in field.split('=') if not x == '']
         if len(field_list) == 0 or field == '.':
             continue # ignore empty fields
-        elif len(field_list) == 2:
+        else:
             name = field_list[0].strip('"')
             value = field_list[1].strip('"')
             if value == '.' or value == '':
                 value = 'NA'
             annotation_dict[name] = value
-        else:
-            raise Exception(('unexpected number of attributes in field '
-                                '(expecting 2): {}').format(field))
     return annotation_dict
 
 def split_anntotation_col(annotation):
     ann_dict = parse_gff_annotation(annotation)
-    #ann_df = pd.DataFrame(ann_dict)
-    #return(ann_df)
-    #return([ann_dict[i][0] for i in ann_dict])
     return(pd.Series(ann_dict))
 
 def make_colnames(prefix, n):
@@ -97,10 +89,10 @@ def make_colnames(prefix, n):
 def bt_annotate_df(target_df, annotation_file, annotation_colnames = None,
     tmp_bed = None):
     """Takes a pandas data frame (target_df), and returns it with new columns
-    from an annotation supported by bedtools (e.g. bed/gff/gtf).
+    from an annotation supported by bedtools (e.g. bed/gff3).
     Args:
         target_df (pandas.DataFrame): must be bed-compatible
-        annotation_file (str): path to a gff/gtf file
+        annotation_file (str): path to a gff3 file
         annotation_colnames (list): names for annotation_file columns (must
             match number of columns in annotation file)
         tmp_bed: path for bedtools temporary file. Default: randomly generated
@@ -129,10 +121,10 @@ def bt_annotate_df(target_df, annotation_file, annotation_colnames = None,
 def annotate_gff(target_df, annotation_file, annotation_cols = None,
     split_attribute = True):
     """Takes a pandas data frame (target_df) and returns it with a new column
-    of annotation from a gff/gtf file (annotation_file).
+    of annotation from a gff3 file (annotation_file).
     Args:
         target_df (pandas.DataFrame): must be bed-compatible
-        annotation_file (str): path to a gff/gtf file
+        annotation_file (str): path to a gff3 file
         annotation_cols (list): columns from annotation_file to include in
             output (default = all)
         split_attribute (bool): Replace attribute column multiple columns by
@@ -228,7 +220,7 @@ def annotateSTRs(strfile, annfile, path_bed):
     and pathogenic loci from a bed file.
     Args:
         strfile (str): path to a STRetch results file
-        annfile (str): path to a gff/gtf file of gene annotations
+        annfile (str): path to a gff3 file of gene annotations
         path_bed (str): path to a bed file containing pathogenic loci
     Returns:
         pandas.DataFrame

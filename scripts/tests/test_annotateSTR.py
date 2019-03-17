@@ -6,15 +6,13 @@ import pytest
 # Define some input/output files that are shared between tests
 str_file = 'test_data/test.tsv'
 str_file_annotated = 'test_data.annotated.tsv'
-annotation_file = 'test_data/hg19_gencodeV19_comp.gtf.gz'
+annotation_file = 'test_data/gencode.v19.annotation.introns.gff3.gz'
 disease_bed = 'test_data/hg19.STR_disease_loci.bed'
 
-# Currently working with hg19_gencodeV19_comp.gtf
-# other formats not working
 @pytest.mark.parametrize("annotation, expected", [
-    ('gene_id ""ENST00000414504.2""; transcript_id ""ENST00000414504.2""; ',
-        {'gene_id': 'ENST00000414504.2', 'transcript_id': 'ENST00000414504.2'} ),
-    ('gene_id """"; transcript_id "".""; ',
+    ('gene_id=ENSG00000230223.2;transcript_id=ENST00000414504.2',
+        {'gene_id': 'ENSG00000230223.2', 'transcript_id': 'ENST00000414504.2'} ),
+    ('gene_id=.;transcript_id=.',
         {'gene_id': 'NA', 'transcript_id': 'NA'} ),
     # ('gene_id ""someval""; transcript_id val1 val2; ',
     #     {'gene_id': ['someval'], 'transcript_id': ['val1', 'val2']} ),
