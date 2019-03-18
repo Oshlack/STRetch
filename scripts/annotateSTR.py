@@ -12,7 +12,6 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=DeprecationWarning)
     import pybedtools as bt
 
-
 def parse_args(raw_args):
     "Parse the input arguments, use '-h' for help"
     parser = argparse.ArgumentParser(description='Annotate an STRetch results file (STRs.tsv) with gene/transcript information')

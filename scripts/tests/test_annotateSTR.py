@@ -7,6 +7,7 @@ import pytest
 str_file = 'test_data/test.tsv'
 str_file_annotated = 'test_data.annotated.tsv'
 annotation_file = 'test_data/gencode.v19.annotation.introns.gff3.gz'
+annotation_mini = 'test_data/gencode.v19.annotation.introns.mini.gff3'
 disease_bed = 'test_data/hg19.STR_disease_loci.bed'
 
 @pytest.mark.parametrize("annotation, expected", [
@@ -33,13 +34,12 @@ def test_make_colnames(prefix, n, expected):
 
 def test_bt_annotate_df():
     target_df = pd.read_csv(str_file, sep='\t')
-    annotated_df = bt_annotate_df(target_df, annotation_file)
+    annotated_df = bt_annotate_df(target_df, annotation_mini)
 
 def test_annotate_gff():
     target_df = pd.read_csv(str_file, sep='\t')
     annotate_gff(target_df,
-    annotation_file,
-    #tmp_bed='tmp.bed',
+    annotation_mini,
     annotation_cols=['attribute'])
 
 def test_annotate_bed():
@@ -48,6 +48,11 @@ def test_annotate_bed():
     bed_file=disease_bed,
     bed_colnames=['chrom', 'start', 'end', 'pathogenic']
     )
+
+def test_annotateSTRs():
+    bed_file=disease_bed
+    str_annotated = annotateSTRs(str_file, annotation_mini, bed_file)
+    str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
 
 def test_dedup_annotations():
     str_df = pd.read_csv(str_file_annotated, sep='\t')
@@ -67,8 +72,3 @@ def test_sortSTRs(str_dict, expected):
     str_df_sorted = sortSTRs(str_df)
     str_df_sorted.to_csv('tmp-sorted.tsv', sep='\t', index = False)
     assert str_df_sorted.reset_index(drop=True).equals(pd.DataFrame(expected))
-
-def test_annotateSTRs():
-    bed_file=disease_bed
-    str_annotated = annotateSTRs(str_file, annotation_file, bed_file)
-    str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
