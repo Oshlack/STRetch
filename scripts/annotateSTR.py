@@ -85,13 +85,74 @@ def make_colnames(prefix, n):
     """
     return([prefix + str(i) for i in range(n)])
 
-def bt_annotate_df(target_df, annotation_file, annotation_colnames = None,
-    tmp_bed = None):
+def calculate_TSS(gff_line):
+    """Calculate the position of the transcription start site (TSS) from a
+    single transcript annotation line from a gff3 file
+    Args:
+        gff (str): transcript line from a gff3 file
+    Returns:
+        str: a new gff3 format line describing the TSS
+    """
+    splitline = gff_line.split()
+    if not splitline[2] == 'transcript':
+        pass #XXX raise error?
+    start = splitline[3]
+    end = splitline[4]
+    strand = splitline[6]
+    #attributes = splitline[8]
+    if strand == '+':
+        tss = start
+    elif strand == '-':
+        tss = end
+    else:
+        tss = None # or 'NA'?
+    #attributes_dict = parse_gff_annotation(attributes)
+    #transcript_id = attributes_dict['transcript_id']
+    #gene_id = attributes_dict['gene_id']
+    #gene_name = attributes_dict['gene_name']
+    return_list = splitline
+    return_list[1] = 'annotateSTR'
+    return_list[2] = 'TSS'
+    return_list[3] = return_list[4] = tss
+    return_string = '\t'.join(return_list)
+    return return_string
+
+def open_check_gz(filename):
+    """If filename ends in .gz open with gzip, else open normally.
+    """
+    if filename.endswith('.gz'):
+        return gzip.open(filename, 'rt')
+    else:
+        return open(filename, 'r')
+
+def gff_TSS(gff_in, gff_out):
+    """Calculate the positions of transcription start sites (TSSs) from a gff3
+    file and write them to a bed file.
+    Args:
+        gff_in (str): path to a gff3 input file containing transcripts
+        gff_out (str): path to a gff3 output file (will be overwritten)
+
+    """
+    with open_check_gz(gff_in) as fin, open(gff_out, 'w') as fout:
+        gff_header = """##gff-version 3
+#description: TSSs calculated as the first nucleotide in each transcript
+#format: gff3
+"""
+        fout.write(gff_header)
+        for line in fin:
+            if not line.startswith('#'):
+                splitline = line.split()
+                if splitline[2] == 'transcript':
+                    fout.write(calculate_TSS(line)+'\n')
+
+def bt_annotate_df(target_df, annotation_file, command = 'intersect',
+    annotation_colnames = None, tmp_bed = None):
     """Takes a pandas data frame (target_df), and returns it with new columns
-    from an annotation supported by bedtools (e.g. bed/gff3).
+    from an annotation from a gff3 file.
     Args:
         target_df (pandas.DataFrame): must be bed-compatible
         annotation_file (str): path to a gff3 file
+        command (str): BedTools command to use - 'intersect' or 'closest'
         annotation_colnames (list): names for annotation_file columns (must
             match number of columns in annotation file)
         tmp_bed: path for bedtools temporary file. Default: randomly generated
@@ -104,7 +165,14 @@ def bt_annotate_df(target_df, annotation_file, annotation_colnames = None,
     # temp file for bedtools to write to and pandas to read
     if not tmp_bed:
         tmp_bed = 'tmp-' + randomletters(8) + '.bed'
-    target_bed.intersect(b=annotation_file, loj=True, wb=True).saveas(tmp_bed)
+
+    if command == 'intersect':
+        target_bed.intersect(b=annotation_file, loj=True, wb=True).saveas(tmp_bed)
+    elif command == 'closest':
+        target_bed.closest(b=annotation_file, D='b', t='first').saveas(tmp_bed)
+    else:
+        pass # throw error
+
     annotated_df = pd.read_csv(tmp_bed, sep='\t', header=None)
     os.remove(tmp_bed) #delete temporary file
     # if column names not provided for annotation file, make some up
@@ -117,37 +185,46 @@ def bt_annotate_df(target_df, annotation_file, annotation_colnames = None,
     annotated_df.replace('.','NA', inplace=True)
     return(annotated_df)
 
-def annotate_gff(target_df, annotation_file, annotation_cols = None,
-    split_attribute = True):
-    """Takes a pandas data frame (target_df) and returns it with a new column
+def annotate_gff(target_df, annotation_file, command = 'intersect',
+    keep_cols = None, split_attributes = True):
+    """Takes a pandas data frame (target_df) and returns it with a new column(s)
     of annotation from a gff3 file (annotation_file).
     Args:
         target_df (pandas.DataFrame): must be bed-compatible
         annotation_file (str): path to a gff3 file
-        annotation_cols (list): columns from annotation_file to include in
-            output (default = all)
-        split_attribute (bool): Replace attribute column multiple columns by
-            splitting it on ';'
+        command (str): BedTools command to use - 'intersect' or 'closest'
+        keep_cols (list): columns from annotation_file to include in
+            output. Can include named values from the gff attributes columns
+            if 'attributes' is included, then all named values from the attributes
+            column are kept (default is None which results in keeping all cols)
+        split_attributes (bool): Replace attribute column with multiple columns
+            by splitting it on ';'
     Returns:
         pandas.DataFrame
     """
     gff_colnames = ['seqname', 'source', 'feature', 'ann_start', 'ann_end', 'score',
-                    'strand', 'frame', 'attribute']
+                    'strand', 'frame', 'attributes']
+    if command == 'closest':
+        gff_colnames.append('distance')
     target_colnames = list(target_df)
 
-    annotated_df = bt_annotate_df(target_df, annotation_file,
+    annotated_df = bt_annotate_df(target_df, annotation_file, command,
         annotation_colnames = gff_colnames)
 
     #XXX check if there are any duplicate colnames and throw an error (need to
     # do with is other functions, so write a generic function to do it?)
-    if annotation_cols:
-        colnames_to_keep = target_colnames + annotation_cols
-        annotated_df = annotated_df[colnames_to_keep]
 
-    attribute_df = annotated_df['attribute'].apply(split_anntotation_col)
-    if split_attribute:
+    attribute_df = annotated_df['attributes'].apply(split_anntotation_col)
+    if split_attributes:
         annotated_df = pd.concat([annotated_df, attribute_df], axis = 1)
-        annotated_df = annotated_df.drop('attribute', axis=1)
+        annotated_df = annotated_df.drop('attributes', axis=1)
+
+    if keep_cols:
+        if 'attributes' in keep_cols:
+            keep_cols += list(attribute_df)
+            keep_cols.remove('attributes')
+        colnames_to_keep = target_colnames + keep_cols
+        annotated_df = annotated_df[colnames_to_keep]
 
     return annotated_df
 
@@ -228,11 +305,28 @@ def annotateSTRs(strfile, annfile, path_bed):
         str_df = pd.read_csv(str_fhandle, sep='\t')
         str_annotated = annotate_gff(str_df,
             annotation_file=annfile,
-            annotation_cols=['feature','attribute'])
+            keep_cols=['feature','gene_name','gene_id','transcript_id'])
+        #print(str_annotated.columns.values)
+    # Calculate TSS positions from transcripts
+    tss_gff = 'calculated_TSS.gff'
+    gff_TSS(annfile, tss_gff)
+    # annotate with TSSs
+    # tss_annotated = annotate_gff(str_annotated,
+    #     tss_gff, command = 'closest',
+    #     keep_cols=['transcript_name', 'distance'])
+    # #XXX Why are duplicate columsn introduced here?
+    # print(tss_annotated.columns.values)
+    # # Rename TSS columns
+    # str_annotated = tss_annotated.rename(
+    #     columns={'transcript_name': 'closest_TSS_transcript_name',
+    #     'distance': 'closest_TSS_distance'})
+    # print(str_annotated.columns.values)
 
-        if path_bed:
-            str_annotated = annotate_bed(str_annotated, path_bed,
-                bed_colnames=['bed_chrom', 'bed_start', 'bed_end', 'pathogenic'])
+    if path_bed:
+        str_annotated = annotate_bed(str_annotated, path_bed,
+            bed_colnames=['bed_chrom', 'bed_start', 'bed_end', 'pathogenic'])
+
+    #print(str_annotated.columns.values)
     #Dedup and sort
     str_annotated = dedup_annotations(str_annotated)
     str_annotated = sortSTRs(str_annotated)

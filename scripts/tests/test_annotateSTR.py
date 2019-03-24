@@ -32,15 +32,43 @@ def test_parse_args_none():
 def test_make_colnames(prefix, n, expected):
     assert make_colnames(prefix, n) == expected
 
+@pytest.mark.parametrize("gff_line, expected", [
+    ('chr1	HAVANA	transcript	11869	14409	.	+	.	ID=transcript1;Parent=gene1;gene_id=ENSG00000223972.4;transcript_id=ENST00000456328.2;gene_type=pseudogene;gene_status=KNOWN;gene_name=DDX11L1;transcript_type=processed_transcript;transcript_status=KNOWN;transcript_name=DDX11L1-002;level=2;havana_gene=OTTHUMG00000000961.2;havana_transcript=OTTHUMT00000362751.1;tag=basic',
+        'chr1	annotateSTR	TSS	11869	11869	.	+	.	ID=transcript1;Parent=gene1;gene_id=ENSG00000223972.4;transcript_id=ENST00000456328.2;gene_type=pseudogene;gene_status=KNOWN;gene_name=DDX11L1;transcript_type=processed_transcript;transcript_status=KNOWN;transcript_name=DDX11L1-002;level=2;havana_gene=OTTHUMG00000000961.2;havana_transcript=OTTHUMT00000362751.1;tag=basic' ),
+])
+def test_calculate_TSS(gff_line, expected):
+    assert calculate_TSS(gff_line) == expected
+
+def test_gff_TSS():
+    output_gff = 'test_tss.gff'
+    tss_df = gff_TSS(annotation_mini, output_gff)
+    with open(output_gff) as f:
+        for line in f:
+            if not line.startswith('#'):
+                assert line.startswith('chr1	annotateSTR	TSS	11869	11869')
+                break
+
 def test_bt_annotate_df():
     target_df = pd.read_csv(str_file, sep='\t')
     annotated_df = bt_annotate_df(target_df, annotation_mini)
 
+def test_bt_annotate_df_closest():
+    target_df = pd.read_csv(str_file, sep='\t')
+    annotated_df = bt_annotate_df(target_df, 'test_tss.gff', command = 'closest')
+    #annotated_df.to_csv('tmp-closest-tss.tsv', sep='\t', index = False)
+
 def test_annotate_gff():
     target_df = pd.read_csv(str_file, sep='\t')
-    annotate_gff(target_df,
-    annotation_mini,
-    annotation_cols=['attribute'])
+    annotated_df = annotate_gff(target_df,
+    annotation_mini, keep_cols=['attributes'])
+    #annotated_df.to_csv('tmp-annotate_gff.tsv', sep='\t', index = False)
+
+def test_annotate_gff_closest():
+    target_df = pd.read_csv(str_file, sep='\t')
+    annotated_df = annotate_gff(target_df,
+    'test_tss.gff', command = 'closest',
+    keep_cols=['transcript_name', 'distance'])
+    #annotated_df.to_csv('tmp-closest-tss.tsv', sep='\t', index = False)
 
 def test_annotate_bed():
     target_df = pd.read_csv(str_file, sep='\t')
