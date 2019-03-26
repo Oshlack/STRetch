@@ -10,6 +10,7 @@ annotation_file = 'test_data/gencode.v19.annotation.introns.gff3.gz'
 annotation_mini = 'test_data/gencode.v19.annotation.introns.mini.gff3'
 tss_file = 'test_data/gencode.v19.annotation.TSS.gff'
 disease_bed = 'test_data/hg19.STR_disease_loci.bed'
+omim_file = 'test_data/mim2gene.txt'
 
 @pytest.mark.parametrize("s, prefix, expected", [
     ('new_colname', 'new_', 'colname'),
@@ -110,9 +111,13 @@ def test_annotate_bed():
     bed_colnames=['chrom', 'start', 'end', 'pathogenic']
     )
 
+def test_parse_omim():
+    omim_df = parse_omim(omim_file)
+    omim_df.to_csv('omim_genes.tsv', sep='\t', index = False)
+
 def test_annotateSTRs():
     bed_file=disease_bed
-    str_annotated = annotateSTRs(str_file, annotation_mini, bed_file, tss_file)
+    str_annotated = annotateSTRs(str_file, annotation_mini, bed_file, tss_file, omim_file)
     str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
 
 def test_dedup_annotations():

@@ -22,9 +22,9 @@ def parse_args(raw_args):
     parser.add_argument(
         '--path_bed', type=str,
         help='BED file containing the locations of known pathogenic STR loci.')
-    # parser.add_argument(
-    #     '--genes', type=str,
-    #     help='BED file containing the locations of genes.')
+    parser.add_argument(
+        '--omim', type=str,
+        help='OMIM mim2gene.txt file (can be downloaded from https://www.omim.org/downloads/)')
     parser.add_argument(
         '--annotation', type=str,
         help='GFF3 genome annotation file (can be gzipped)')
@@ -81,8 +81,11 @@ def parse_gff_annotation(annotation):
     for field in fields:
         # Strip whitespace
         field_list = [x.strip() for x in field.split('=') if not x == '']
-        if len(field_list) == 0 or field == '.':
+        if len(field_list) == 0 or field == '.' or field == 'NA':
             continue # ignore empty fields
+        elif len(field_list) == 1:
+            sys.stderr.write('Unexpectedly short field: ' + field + '\n')
+            continue # ignore single fields
         else:
             name = field_list[0].strip('"')
             value = field_list[1].strip('"')
@@ -357,7 +360,20 @@ def annotate_tss(str_df, tss_gff):
         'distance': 'closest_TSS_distance'})
     return tss_annotated
 
-def annotateSTRs(strfile, annfile, path_bed, tss_file=None):
+def parse_omim(omim_file):
+    """Parse mim2gene.txt file downloaded from https://www.omim.org/downloads/
+    Extracts out genes only
+    Args:
+        omim_file (str): path to OMIM file, e.g. mim2gene.txt
+    Returns:
+        pandas.DataFrame
+    """
+    omim_df = pd.read_csv(omim_file, sep='\t', comment='#',
+        names = ['mim_number', 'mim_entry_type', 'entrez_gene_id',
+        'hgnc_gene_symbol', 'ensembl_gene_id'])
+    return omim_df.loc[omim_df['mim_entry_type'] == 'gene']
+
+def annotateSTRs(strfile, annfile, path_bed, tss_file=None, omim_file=None):
     """Take a STRetch results file and annotate it with a gene annotation file
     and pathogenic loci from a bed file.
     Args:
@@ -365,6 +381,7 @@ def annotateSTRs(strfile, annfile, path_bed, tss_file=None):
         annfile (str): path to a gff3 file of gene annotations
         path_bed (str): path to a bed file containing pathogenic loci
         tss_file (str): path to a gff3 file of TSS positions
+        omim_file (str): path to OMIM file, e.g. mim2gene.txt
     Returns:
         pandas.DataFrame
     """
@@ -374,6 +391,18 @@ def annotateSTRs(strfile, annfile, path_bed, tss_file=None):
             annotation_file=annfile,
             keep_cols=['feature','gene_name','gene_id','transcript_id'], col_prefix='gff_')
         str_annotated.to_csv('another-tmp.tsv', sep='\t', index = False)
+
+    # Check if annotated genes are in OMIM
+    if omim_file:
+        omim_df = parse_omim(omim_file)
+        # check if gene_id in omim_df['ensembl_gene_id']
+        base_gene_id = str_annotated['gene_id'].apply(lambda x: x.split('.')[0])
+        gene_id_in_omim = base_gene_id.isin(omim_df['ensembl_gene_id'])
+        # check if gene_name in omim_df['hgnc_gene_symbol']
+        gene_name_in_omim = str_annotated['gene_name'].isin(omim_df['hgnc_gene_symbol'])
+        # either gene_id or gene_name in omim
+        str_annotated['in_omim'] = gene_id_in_omim | gene_name_in_omim
+        # check if TSS is in omim? if so move this to below tss annotation
 
     # if no TSS file provided, calculate TSS positions from transcripts
     if not tss_file:
@@ -390,6 +419,7 @@ def annotateSTRs(strfile, annfile, path_bed, tss_file=None):
     #Dedup and sort
     str_annotated = dedup_annotations(str_annotated)
     str_annotated = sortSTRs(str_annotated)
+
     return str_annotated
 
 def main(raw_args):
@@ -397,11 +427,14 @@ def main(raw_args):
     args = parse_args(raw_args)
     strfile = args.STRs_tsv
     pathfile = args.path_bed
-    # genefile = args.genes
+    omim_file = args.omim
     annfile = args.annotation
     outfile = args.output
 
-    annotated_df = annotateSTRs(strfile, annfile, pathfile)
+    #XXX allow this to be provdied at commandline?
+    tss_file = None
+
+    annotated_df = annotateSTRs(strfile, annfile, pathfile, tss_file, omim_file)
 
     if outfile:
         annotated_df.to_csv(outfile, sep='\t', index = False)
