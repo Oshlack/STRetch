@@ -8,7 +8,15 @@ str_file = 'test_data/test.tsv'
 str_file_annotated = 'test_data.annotated.tsv'
 annotation_file = 'test_data/gencode.v19.annotation.introns.gff3.gz'
 annotation_mini = 'test_data/gencode.v19.annotation.introns.mini.gff3'
+tss_file = 'test_data/gencode.v19.annotation.TSS.gff'
 disease_bed = 'test_data/hg19.STR_disease_loci.bed'
+
+@pytest.mark.parametrize("s, prefix, expected", [
+    ('new_colname', 'new_', 'colname'),
+    ('colname', 'new_', 'colname'),
+])
+def test_remove_prefix(s, prefix, expected):
+    assert remove_prefix(s, prefix) == expected
 
 @pytest.mark.parametrize("annotation, expected", [
     ('gene_id=ENSG00000230223.2;transcript_id=ENST00000414504.2',
@@ -41,12 +49,16 @@ def test_calculate_TSS(gff_line, expected):
 
 def test_gff_TSS():
     output_gff = 'test_tss.gff'
-    tss_df = gff_TSS(annotation_mini, output_gff)
+    gff_TSS(annotation_mini, output_gff)
     with open(output_gff) as f:
         for line in f:
             if not line.startswith('#'):
                 assert line.startswith('chr1	annotateSTR	TSS	11869	11869')
                 break
+
+# def test_gff_TSS_all():
+#     output_gff = 'transcripts_tss.gff'
+#     gff_TSS(annotation_file, output_gff)
 
 def test_bt_annotate_df():
     target_df = pd.read_csv(str_file, sep='\t')
@@ -57,6 +69,14 @@ def test_bt_annotate_df_closest():
     annotated_df = bt_annotate_df(target_df, 'test_tss.gff', command = 'closest')
     #annotated_df.to_csv('tmp-closest-tss.tsv', sep='\t', index = False)
 
+def test_bt_annotate_df_dup():
+    """Raise error if duplicate colnames"""
+    target_df = pd.read_csv('another-tmp.tsv', sep='\t')
+    with pytest.raises(ValueError):
+        annotated_df = bt_annotate_df(target_df, tss_file,
+            annotation_colnames = ['seqname', 'source', 'feature', 'ann_start',
+            'ann_end', 'score', 'strand', 'frame', 'attributes'])
+
 def test_annotate_gff():
     target_df = pd.read_csv(str_file, sep='\t')
     annotated_df = annotate_gff(target_df,
@@ -66,9 +86,22 @@ def test_annotate_gff():
 def test_annotate_gff_closest():
     target_df = pd.read_csv(str_file, sep='\t')
     annotated_df = annotate_gff(target_df,
-    'test_tss.gff', command = 'closest',
+    tss_file, command = 'closest',
     keep_cols=['transcript_name', 'distance'])
-    #annotated_df.to_csv('tmp-closest-tss.tsv', sep='\t', index = False)
+    annotated_df.to_csv('tmp-closest-tss.tsv', sep='\t', index = False)
+
+#XXX Test the situation that there's no matching results
+# def test_annotate_gff_closest_none():
+#     target_df = pd.read_csv(str_file, sep='\t')
+#     annotated_df = annotate_gff(target_df,
+#     'test_tss.gff', command = 'closest',
+#     keep_cols=['transcript_name', 'distance'])
+#     annotated_df.to_csv('tmp-closest-tss.tsv', sep='\t', index = False)
+
+def test_annotate_tss():
+    target_df = pd.read_csv(str_file, sep='\t')
+    annotated_df = annotate_tss(target_df, tss_gff=tss_file)
+    annotated_df.to_csv('tmp-annotate-tss.tsv', sep='\t', index = False)
 
 def test_annotate_bed():
     target_df = pd.read_csv(str_file, sep='\t')
@@ -79,7 +112,7 @@ def test_annotate_bed():
 
 def test_annotateSTRs():
     bed_file=disease_bed
-    str_annotated = annotateSTRs(str_file, annotation_mini, bed_file)
+    str_annotated = annotateSTRs(str_file, annotation_mini, bed_file, tss_file)
     str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
 
 def test_dedup_annotations():

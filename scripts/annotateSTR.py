@@ -6,6 +6,7 @@ import pandas as pd
 import sys
 import os
 import gzip
+import toolz
 
 import warnings
 with warnings.catch_warnings():
@@ -38,6 +39,26 @@ def parse_args(raw_args):
 
 def randomletters(length):
    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
+
+@toolz.curry
+def remove_prefix(s, prefix):
+    """if string s starts with prefix, return s without the prefix,
+    otherwise return original s
+    """
+    if s.startswith(prefix):
+        return(s[len(prefix):])
+    else:
+        return s
+
+@toolz.curry
+def add_prefix(s, prefix):
+    """if string s doesn't start with prefix, return s with the prefix,
+    otherwise return original s
+    """
+    if s.startswith(prefix):
+        s
+    else:
+        return prefix + s
 
 def dataframe_to_bed(df):
     """Convert pandas.DataFrame to BedTool object
@@ -125,15 +146,18 @@ def open_check_gz(filename):
     else:
         return open(filename, 'r')
 
-def gff_TSS(gff_in, gff_out):
+def gff_TSS(gff_in, gff_out, gff_tmp = None):
     """Calculate the positions of transcription start sites (TSSs) from a gff3
     file and write them to a bed file.
     Args:
         gff_in (str): path to a gff3 input file containing transcripts
         gff_out (str): path to a gff3 output file (will be overwritten)
-
+        gff_tmp: path for bedtools gff temporary file. Default: randomly generated
+            filename in form tmp-XXXXXXXX.gff in current directory.
     """
-    with open_check_gz(gff_in) as fin, open(gff_out, 'w') as fout:
+    if not gff_tmp:
+        gff_tmp = 'tmp-' + randomletters(8) + '.gff'
+    with open_check_gz(gff_in) as fin, open(gff_tmp, 'w') as fout:
         gff_header = """##gff-version 3
 #description: TSSs calculated as the first nucleotide in each transcript
 #format: gff3
@@ -144,6 +168,11 @@ def gff_TSS(gff_in, gff_out):
                 splitline = line.split()
                 if splitline[2] == 'transcript':
                     fout.write(calculate_TSS(line)+'\n')
+
+        # bedtools sort -i test_tss.gff -header
+        gff = bt.BedTool(gff_tmp)
+        gff.sort(header=True).saveas(gff_out)
+        os.remove(gff_tmp) #delete temporary file
 
 def bt_annotate_df(target_df, annotation_file, command = 'intersect',
     annotation_colnames = None, tmp_bed = None):
@@ -171,14 +200,25 @@ def bt_annotate_df(target_df, annotation_file, command = 'intersect',
     elif command == 'closest':
         target_bed.closest(b=annotation_file, D='b', t='first').saveas(tmp_bed)
     else:
-        pass # throw error
+        raise ValueError('Unknown command: ' + command +
+            ', valid options are "intersect" or "closest"')
 
     annotated_df = pd.read_csv(tmp_bed, sep='\t', header=None)
     os.remove(tmp_bed) #delete temporary file
+
+    #XXX check for the situation that there were no matches, causes missing columns
+
+    if annotation_colnames:
+        duplicate_colnames = [colname for colname in annotation_colnames
+            if colname in target_colnames]
+        if len(duplicate_colnames) > 0:
+            raise ValueError('Column names must be unique, these were duplicated: '
+                + str(duplicate_colnames))
     # if column names not provided for annotation file, make some up
-    if not annotation_colnames:
+    else:
         n_annotation_colnames = len(annotated_df.columns) - len(target_colnames)
         annotation_colnames = make_colnames('annotation_', n_annotation_colnames)
+
     colnames = target_colnames + annotation_colnames
     annotated_df.columns = colnames
     # Replace '.' (missing values from bedtools) with NA
@@ -186,7 +226,7 @@ def bt_annotate_df(target_df, annotation_file, command = 'intersect',
     return(annotated_df)
 
 def annotate_gff(target_df, annotation_file, command = 'intersect',
-    keep_cols = None, split_attributes = True):
+    keep_cols = None, split_attributes = True, col_prefix = 'new_'):
     """Takes a pandas data frame (target_df) and returns it with a new column(s)
     of annotation from a gff3 file (annotation_file).
     Args:
@@ -199,32 +239,47 @@ def annotate_gff(target_df, annotation_file, command = 'intersect',
             column are kept (default is None which results in keeping all cols)
         split_attributes (bool): Replace attribute column with multiple columns
             by splitting it on ';'
+        col_prefix (str): prefix to use to make column names unique if required
     Returns:
         pandas.DataFrame
     """
     gff_colnames = ['seqname', 'source', 'feature', 'ann_start', 'ann_end', 'score',
                     'strand', 'frame', 'attributes']
+    attributes_colname = 'attributes'
     if command == 'closest':
         gff_colnames.append('distance')
     target_colnames = list(target_df)
 
+    # check for and rename duplicate colnames
+    duplicate_colnames = [colname for colname in gff_colnames
+        if colname in target_colnames]
+
+    # Add a prefix to the gff column names to make them unique
+    gff_colnames = [col_prefix + colname for colname in gff_colnames]
+    attributes_colname = col_prefix + attributes_colname
+    keep_cols = [col_prefix + colname for colname in keep_cols]
+
     annotated_df = bt_annotate_df(target_df, annotation_file, command,
         annotation_colnames = gff_colnames)
 
-    #XXX check if there are any duplicate colnames and throw an error (need to
-    # do with is other functions, so write a generic function to do it?)
+    attribute_df = annotated_df[attributes_colname].apply(split_anntotation_col)
+    # Rename attribute columns with prefix
+    add_col_prefix = add_prefix(prefix=col_prefix)
+    attribute_df = attribute_df.rename(add_col_prefix, axis='columns')
 
-    attribute_df = annotated_df['attributes'].apply(split_anntotation_col)
     if split_attributes:
         annotated_df = pd.concat([annotated_df, attribute_df], axis = 1)
-        annotated_df = annotated_df.drop('attributes', axis=1)
+        annotated_df = annotated_df.drop(attributes_colname, axis=1)
 
     if keep_cols:
-        if 'attributes' in keep_cols:
+        if attributes_colname in keep_cols:
             keep_cols += list(attribute_df)
-            keep_cols.remove('attributes')
+            keep_cols.remove(attributes_colname)
         colnames_to_keep = target_colnames + keep_cols
         annotated_df = annotated_df[colnames_to_keep]
+
+    remove_col_prefix = remove_prefix(prefix=col_prefix)
+    annotated_df = annotated_df.rename(remove_col_prefix, axis='columns')
 
     return annotated_df
 
@@ -291,13 +346,25 @@ def sortSTRs(str_df):
     """
     return(str_df.sort_values(['outlier', 'bpInsertion'], ascending=[False, False]))
 
-def annotateSTRs(strfile, annfile, path_bed):
+def annotate_tss(str_df, tss_gff):
+    """
+    """
+    tss_annotated = annotate_gff(str_df, tss_gff, command = 'closest',
+        keep_cols=['transcript_name', 'distance'], col_prefix = 'tss_')
+    # Rename TSS columns
+    tss_annotated = tss_annotated.rename(
+        columns={'transcript_name': 'closest_TSS_transcript_name',
+        'distance': 'closest_TSS_distance'})
+    return tss_annotated
+
+def annotateSTRs(strfile, annfile, path_bed, tss_file=None):
     """Take a STRetch results file and annotate it with a gene annotation file
     and pathogenic loci from a bed file.
     Args:
         strfile (str): path to a STRetch results file
         annfile (str): path to a gff3 file of gene annotations
         path_bed (str): path to a bed file containing pathogenic loci
+        tss_file (str): path to a gff3 file of TSS positions
     Returns:
         pandas.DataFrame
     """
@@ -305,28 +372,21 @@ def annotateSTRs(strfile, annfile, path_bed):
         str_df = pd.read_csv(str_fhandle, sep='\t')
         str_annotated = annotate_gff(str_df,
             annotation_file=annfile,
-            keep_cols=['feature','gene_name','gene_id','transcript_id'])
-        #print(str_annotated.columns.values)
-    # Calculate TSS positions from transcripts
-    tss_gff = 'calculated_TSS.gff'
-    gff_TSS(annfile, tss_gff)
-    # annotate with TSSs
-    # tss_annotated = annotate_gff(str_annotated,
-    #     tss_gff, command = 'closest',
-    #     keep_cols=['transcript_name', 'distance'])
-    # #XXX Why are duplicate columsn introduced here?
-    # print(tss_annotated.columns.values)
-    # # Rename TSS columns
-    # str_annotated = tss_annotated.rename(
-    #     columns={'transcript_name': 'closest_TSS_transcript_name',
-    #     'distance': 'closest_TSS_distance'})
-    # print(str_annotated.columns.values)
+            keep_cols=['feature','gene_name','gene_id','transcript_id'], col_prefix='gff_')
+        str_annotated.to_csv('another-tmp.tsv', sep='\t', index = False)
 
+    # if no TSS file provided, calculate TSS positions from transcripts
+    if not tss_file:
+        tss_gff = 'calculated_TSS.gff'
+        gff_TSS(annotation_file, tss_gff)
+    # annotate with TSSs
+    str_annotated = annotate_tss(str_annotated, tss_gff=tss_file)
+
+    # Annotate pathogenic loci
     if path_bed:
         str_annotated = annotate_bed(str_annotated, path_bed,
             bed_colnames=['bed_chrom', 'bed_start', 'bed_end', 'pathogenic'])
 
-    #print(str_annotated.columns.values)
     #Dedup and sort
     str_annotated = dedup_annotations(str_annotated)
     str_annotated = sortSTRs(str_annotated)
