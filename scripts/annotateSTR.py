@@ -29,11 +29,14 @@ def parse_args(raw_args):
         '--annotation', type=str,
         help='GFF3 genome annotation file (can be gzipped)')
     parser.add_argument(
-            '--ids', type=str,
-            help='Gene IDs and their corresponding gene names/symbols') #XXX describe format
+        '--tss', type=str,
+        help='GFF3 genome annotation file of transcription start sites (TSS). Will be caculated from annotation if not provided (can be gzipped)')
     parser.add_argument(
         '--output', type=str,
         help='Output file name. Defaults to stdout.')
+    parser.add_argument(
+        '--chunksize', type=int, default = 10000,
+        help='Annotate this many variants at a time to reduce memory requirements')
 
     return parser.parse_args(raw_args)
 
@@ -386,11 +389,12 @@ def parse_omim(omim_file):
         'hgnc_gene_symbol', 'ensembl_gene_id'])
     return omim_df.loc[omim_df['mim_entry_type'] == 'gene']
 
-def annotateSTRs(strfile, annfile, path_bed, tss_file=None, omim_file=None):
+#XXX make path_bed optional?
+def annotateSTRs(str_df, annfile, path_bed, tss_file, omim_file=None):
     """Take a STRetch results file and annotate it with a gene annotation file
     and pathogenic loci from a bed file.
     Args:
-        strfile (str): path to a STRetch results file
+        str_df (pandas.DataFrame): annotated STRetch results
         annfile (str): path to a gff3 file of gene annotations
         path_bed (str): path to a bed file containing pathogenic loci
         tss_file (str): path to a gff3 file of TSS positions
@@ -398,12 +402,10 @@ def annotateSTRs(strfile, annfile, path_bed, tss_file=None, omim_file=None):
     Returns:
         pandas.DataFrame
     """
-    with open(strfile) as str_fhandle:
-        str_df = pd.read_csv(str_fhandle, sep='\t')
-        str_annotated = annotate_gff(str_df,
-            annotation_file=annfile,
-            keep_cols=['feature','gene_name','gene_id','transcript_id'], col_prefix='gff_')
-        str_annotated.to_csv('another-tmp.tsv', sep='\t', index = False)
+    str_annotated = annotate_gff(str_df,
+        annotation_file=annfile,
+        keep_cols=['feature','gene_name','gene_id','transcript_id'], col_prefix='gff_')
+    str_annotated.to_csv('another-tmp.tsv', sep='\t', index = False)
 
     # Check if annotated genes are in OMIM
     if omim_file:
@@ -417,10 +419,6 @@ def annotateSTRs(strfile, annfile, path_bed, tss_file=None, omim_file=None):
         str_annotated['in_omim'] = gene_id_in_omim | gene_name_in_omim
         # check if TSS is in omim? if so move this to below tss annotation
 
-    # if no TSS file provided, calculate TSS positions from transcripts
-    if not tss_file:
-        tss_file = 'calculated_TSS.gff' #XXX better file name here (or require it be set?)
-        gff_TSS(annfile, tss_file)
     # annotate with TSSs
     str_annotated = annotate_tss(str_annotated, tss_gff=tss_file)
 
@@ -443,16 +441,40 @@ def main(raw_args):
     omim_file = args.omim
     annfile = args.annotation
     outfile = args.output
+    chunk_size = args.chunksize
 
-    #XXX allow this to be provdied at commandline?
+    #XXX allow these to be provdied at commandline?
     tss_file = None
 
-    annotated_df = annotateSTRs(strfile, annfile, pathfile, tss_file, omim_file)
+    # if no TSS file provided, calculate TSS positions from transcripts
+    if not tss_file:
+        tss_file = 'calculated_TSS.gff' #XXX better file name here (or require it be set?)
+        gff_TSS(annfile, tss_file)
 
-    if outfile:
-        annotated_df.to_csv(outfile, sep='\t', index = False)
-    else:
-        sys.stdout.write(annotated_df.to_csv(sep='\t', index = False))
+    with open(strfile) as str_fhandle:
+        str_reader = pd.read_csv(str_fhandle, sep='\t', chunksize=chunk_size)
+        header_written = False
+        for str_df in str_reader:
+            annotated_df = annotateSTRs(str_df, annfile, pathfile,
+                tss_file, omim_file)
+
+            # need to delete file if it exists (to avoid appending an old one)
+            # and write header for first chunk only
+            if not header_written:
+                if outfile:
+                    annotated_df.to_csv(outfile, sep='\t', index = False,
+                        header = True, mode = 'w')
+                else:
+                    sys.stdout.write(annotated_df.to_csv(sep='\t', index = False,
+                        header = True))
+                header_written = True
+            else:
+                if outfile:
+                    annotated_df.to_csv(outfile, sep='\t', index = False,
+                        header = False, mode = 'a')
+                else:
+                    sys.stdout.write(annotated_df.to_csv(sep='\t', index = False,
+                        header = False))
 
 if __name__ == '__main__':
     main(sys.argv[1:])

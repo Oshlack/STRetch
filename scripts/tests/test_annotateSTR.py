@@ -117,7 +117,8 @@ def test_parse_omim():
 
 def test_annotateSTRs():
     bed_file=disease_bed
-    str_annotated = annotateSTRs(str_file, annotation_mini, bed_file, tss_file, omim_file)
+    str_df = pd.read_csv(str_file, sep='\t')
+    str_annotated = annotateSTRs(str_df, annotation_mini, bed_file, tss_file, omim_file)
     str_annotated.to_csv(str_file_annotated, sep='\t', index = False)
 
 def test_dedup_annotations():
