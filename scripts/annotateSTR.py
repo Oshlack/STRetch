@@ -343,8 +343,8 @@ def dedup_annotations(str_df):
     """
     id_columns = ['chrom', 'start', 'end', 'sample', 'repeatunit']
     priority = ['CDS', 'start_codon', 'stop_codon',
-        'stop_codon_redefined_as_selenocysteine', 'exon', 'intron',
-        'transcript', 'UTR', 'gene']
+        'stop_codon_redefined_as_selenocysteine', 'exon', 'UTR', 'intron',
+        'transcript', 'gene']
     column_order = str_df.columns.values
 
     str_df['feature'] = pd.Categorical(str_df['feature'], priority)
