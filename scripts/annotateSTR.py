@@ -212,7 +212,7 @@ def bt_annotate_df(target_df, annotation_file, command = 'intersect',
     if command == 'intersect':
         target_bed.intersect(b=annotation_file, loj=True, wb=True).saveas(tmp_bed)
     elif command == 'closest':
-        target_bed.closest(b=annotation_file, D='b', t='first').saveas(tmp_bed)
+        target_bed.sort().closest(b=annotation_file, D='b', t='first').saveas(tmp_bed)
     else:
         raise ValueError('Unknown command: ' + command +
             ', valid options are "intersect" or "closest"')
@@ -342,7 +342,9 @@ def dedup_annotations(str_df):
         pandas.DataFrame
     """
     id_columns = ['chrom', 'start', 'end', 'sample', 'repeatunit']
-    priority = ['CDS', 'start_codon', 'stop_codon', 'exon', 'intron']
+    priority = ['CDS', 'start_codon', 'stop_codon',
+        'stop_codon_redefined_as_selenocysteine', 'exon', 'intron',
+        'transcript', 'UTR', 'gene']
     column_order = str_df.columns.values
 
     str_df['feature'] = pd.Categorical(str_df['feature'], priority)
@@ -407,7 +409,7 @@ def annotateSTRs(strfile, annfile, path_bed, tss_file=None, omim_file=None):
     if omim_file:
         omim_df = parse_omim(omim_file)
         # check if gene_id in omim_df['ensembl_gene_id']
-        base_gene_id = str_annotated['gene_id'].apply(lambda x: x.split('.')[0])
+        base_gene_id = str_annotated['gene_id'].apply(lambda x: str(x).split('.')[0])
         gene_id_in_omim = base_gene_id.isin(omim_df['ensembl_gene_id'])
         # check if gene_name in omim_df['hgnc_gene_symbol']
         gene_name_in_omim = str_annotated['gene_name'].isin(omim_df['hgnc_gene_symbol'])
@@ -417,8 +419,8 @@ def annotateSTRs(strfile, annfile, path_bed, tss_file=None, omim_file=None):
 
     # if no TSS file provided, calculate TSS positions from transcripts
     if not tss_file:
-        tss_gff = 'calculated_TSS.gff'
-        gff_TSS(annotation_file, tss_gff)
+        tss_file = 'calculated_TSS.gff' #XXX better file name here (or require it be set?)
+        gff_TSS(annfile, tss_file)
     # annotate with TSSs
     str_annotated = annotate_tss(str_annotated, tss_gff=tss_file)
 
