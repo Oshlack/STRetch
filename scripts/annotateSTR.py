@@ -156,10 +156,16 @@ def gff_TSS(gff_in, gff_out, gff_tmp = None):
         gff_in (str): path to a gff3 input file containing transcripts
         gff_out (str): path to a gff3 output file (will be overwritten)
         gff_tmp: path for bedtools gff temporary file. Default: randomly generated
-            filename in form tmp-XXXXXXXX.gff in current directory.
+            filename in form tmp-XXXXXXXX.gff in the ./tmp directory.
     """
     if not gff_tmp:
-        gff_tmp = 'tmp-' + randomletters(8) + '.gff'
+        tmpdir = 'tmp'
+        gff_tmp = tmpdir + '/tmp-' + randomletters(8) + '.gff'
+        try:
+            os.mkdir(tmpdir)
+        except FileExistsError:
+            pass
+
     with open_check_gz(gff_in) as fin, open(gff_tmp, 'w') as fout:
         gff_header = """##gff-version 3
 #description: TSSs calculated as the first nucleotide in each transcript
@@ -188,7 +194,7 @@ def bt_annotate_df(target_df, annotation_file, command = 'intersect',
         annotation_colnames (list): names for annotation_file columns (must
             match number of columns in annotation file)
         tmp_bed: path for bedtools temporary file. Default: randomly generated
-            filename in form tmp-XXXXXXXX.bed in current directory.
+            filename in form tmp-XXXXXXXX.bed in the ./tmp directory.
     Returns:
         pandas.DataFrame
     """
@@ -196,7 +202,12 @@ def bt_annotate_df(target_df, annotation_file, command = 'intersect',
     target_colnames = list(target_df)
     # temp file for bedtools to write to and pandas to read
     if not tmp_bed:
-        tmp_bed = 'tmp-' + randomletters(8) + '.bed'
+        tmpdir = 'tmp'
+        tmp_bed = tmpdir + '/tmp-' + randomletters(8) + '.bed'
+        try:
+            os.mkdir(tmpdir)
+        except FileExistsError:
+            pass
 
     if command == 'intersect':
         target_bed.intersect(b=annotation_file, loj=True, wb=True).saveas(tmp_bed)
