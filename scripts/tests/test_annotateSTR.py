@@ -72,7 +72,7 @@ def test_bt_annotate_df_closest():
 
 def test_bt_annotate_df_dup():
     """Raise error if duplicate colnames"""
-    target_df = pd.read_csv('another-tmp.tsv', sep='\t')
+    target_df = pd.read_csv('test_data/test.annotated_w_duplicates.tsv', sep='\t')
     with pytest.raises(ValueError):
         annotated_df = bt_annotate_df(target_df, tss_file,
             annotation_colnames = ['seqname', 'source', 'feature', 'ann_start',
