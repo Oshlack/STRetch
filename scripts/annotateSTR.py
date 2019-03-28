@@ -392,6 +392,26 @@ def parse_omim(omim_file):
         'hgnc_gene_symbol', 'ensembl_gene_id'])
     return omim_df.loc[omim_df['mim_entry_type'] == 'gene']
 
+def parse_biomart_omim(omim_file):
+    """Parse tsv file downloaded from biomart with contains the minimum columns:
+    'Gene stable ID', 'MIM gene accession' and 'MIM disease accession'
+    or 'MIM morbid accession'. Returns genes with MIM gene accession numbers only
+    Args:
+        omim_file (str): path to tsv file
+    Returns:
+        pandas.DataFrame
+    """
+    omim_df = pd.read_csv(omim_file, header = 0, sep='\t', dtype = str)
+    omim_df = omim_df.rename(columns={'Gene name': 'gene_name',
+        'Gene stable ID': 'gene_id',
+        'MIM gene accession': 'mim_gene_id',
+        'MIM disease accession': 'mim_disease_id',
+        'MIM morbid accession': 'mim_disease_id',
+        })
+    # Only keep genes that are have mim gene accessions
+    omim_df = omim_df.loc[omim_df['mim_gene_id'].notna()]
+    return omim_df
+
 #XXX make path_bed optional?
 def annotateSTRs(str_df, annfile, path_bed, tss_file, omim_file=None):
     """Take a STRetch results file and annotate it with a gene annotation file

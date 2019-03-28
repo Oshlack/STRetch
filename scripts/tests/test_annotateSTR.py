@@ -2,6 +2,7 @@ import sys
 sys.path.append("..")
 from annotateSTR import *
 import pytest
+import numpy as np
 
 # Define some input/output files that are shared between tests
 str_file = 'test_data/test.tsv'
@@ -114,6 +115,11 @@ def test_annotate_bed():
 def test_parse_omim():
     omim_df = parse_omim(omim_file)
     omim_df.to_csv('omim_genes.tsv', sep='\t', index = False)
+
+def test_parse_biomart_omim():
+    omim_df = parse_biomart_omim('test_data/biomart_GRCh37.p13_omim.tsv')
+    assert np.array_equal(omim_df['gene_id'][:2],
+        ['ENSG00000261657', 'ENSG00000228741'])
 
 def test_annotateSTRs():
     bed_file=disease_bed
