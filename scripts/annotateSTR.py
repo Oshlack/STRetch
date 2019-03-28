@@ -15,22 +15,25 @@ with warnings.catch_warnings():
 
 def parse_args(raw_args):
     "Parse the input arguments, use '-h' for help"
-    parser = argparse.ArgumentParser(description='Annotate an STRetch results file (STRs.tsv) with gene/transcript information')
+    parser = argparse.ArgumentParser(
+        description='Annotate an STRetch results file (STRs.tsv) with gene/transcript information')
     parser.add_argument(
         'STRs_tsv', type=str,
         help='Input STRs.tsv file produced by STRetch.')
     parser.add_argument(
-        '--path_bed', type=str,
-        help='BED file containing the locations of known pathogenic STR loci.')
-    parser.add_argument(
-        '--omim', type=str,
-        help='OMIM mim2gene.txt file (can be downloaded from https://www.omim.org/downloads/)')
-    parser.add_argument(
-        '--annotation', type=str,
+        '--annotation', type=str, required = True,
         help='GFF3 genome annotation file (can be gzipped)')
     parser.add_argument(
-        '--tss', type=str,
-        help='GFF3 genome annotation file of transcription start sites (TSS). Will be caculated from annotation if not provided (can be gzipped)')
+        '--tss', type=str, required = True,
+        help=("GFF3 genome annotation file of transcription start sites (TSS). "
+            "(can be gzipped) If this file doesn't exist it will be caculated "
+            "from the annotation file."))
+    parser.add_argument(
+         '--path_bed', type=str,
+         help='BED file containing the locations of known pathogenic STR loci.')
+    parser.add_argument(
+         '--omim', type=str,
+         help='OMIM mim2gene.txt file (can be downloaded from https://www.omim.org/downloads/)')
     parser.add_argument(
         '--output', type=str,
         help='Output file name. Defaults to stdout.')
@@ -402,10 +405,10 @@ def annotateSTRs(str_df, annfile, path_bed, tss_file, omim_file=None):
     Returns:
         pandas.DataFrame
     """
+
     str_annotated = annotate_gff(str_df,
         annotation_file=annfile,
         keep_cols=['feature','gene_name','gene_id','transcript_id'], col_prefix='gff_')
-    str_annotated.to_csv('another-tmp.tsv', sep='\t', index = False)
 
     # Check if annotated genes are in OMIM
     if omim_file:
@@ -433,6 +436,21 @@ def annotateSTRs(str_df, annfile, path_bed, tss_file, omim_file=None):
 
     return str_annotated
 
+def write_outstream(df, outfile=None, mode='w', header=True):
+    """Write a pandas DataFrame to file or stdout
+    Args:
+        df (pandas.DataFrame)
+        outfile (str): path to file to be written (if None write to stdout)
+        mode (str): file writing mode e.g. 'w' or 'a'
+        header (bool): Include header in output
+    """
+    if outfile:
+        df.to_csv(outfile, sep='\t', index = False,
+            mode = mode, header = header)
+    else:
+        sys.stdout.write(df.to_csv(sep='\t', index = False,
+            header = header))
+
 def main(raw_args):
     # Parse command line arguments
     args = parse_args(raw_args)
@@ -440,41 +458,32 @@ def main(raw_args):
     pathfile = args.path_bed
     omim_file = args.omim
     annfile = args.annotation
-    outfile = args.output
+    outfile = args.output # default None writes to stdout
     chunk_size = args.chunksize
+    tss_file = args.tss
 
-    #XXX allow these to be provdied at commandline?
-    tss_file = None
+    #XXX TODO: deal with missing files from commandline, and determine which (if any) should be required
 
-    # if no TSS file provided, calculate TSS positions from transcripts
-    if not tss_file:
-        tss_file = 'calculated_TSS.gff' #XXX better file name here (or require it be set?)
+    # If TSS file doesn't exist, create it by calculating TSS positions from transcripts
+    if not os.path.isfile(tss_file):
+        sys.stderr.write(('TSS file: {} not found, creating it using '
+            'transcripts from {}.\n').format(tss_file, annfile))
         gff_TSS(annfile, tss_file)
 
     with open(strfile) as str_fhandle:
+        # Read, annotate and write the variants in chunks to conserve memory
         str_reader = pd.read_csv(str_fhandle, sep='\t', chunksize=chunk_size)
         header_written = False
         for str_df in str_reader:
             annotated_df = annotateSTRs(str_df, annfile, pathfile,
                 tss_file, omim_file)
-
-            # need to delete file if it exists (to avoid appending an old one)
+            # delete file if it exists (to avoid appending an old one)
             # and write header for first chunk only
             if not header_written:
-                if outfile:
-                    annotated_df.to_csv(outfile, sep='\t', index = False,
-                        header = True, mode = 'w')
-                else:
-                    sys.stdout.write(annotated_df.to_csv(sep='\t', index = False,
-                        header = True))
+                write_outstream(annotated_df, outfile, mode='w', header=True)
                 header_written = True
             else:
-                if outfile:
-                    annotated_df.to_csv(outfile, sep='\t', index = False,
-                        header = False, mode = 'a')
-                else:
-                    sys.stdout.write(annotated_df.to_csv(sep='\t', index = False,
-                        header = False))
+                write_outstream(annotated_df, outfile, mode='a', header=False)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
