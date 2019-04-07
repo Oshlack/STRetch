@@ -121,6 +121,12 @@ def test_parse_biomart_omim():
     assert np.array_equal(omim_df['gene_id'][:2],
         ['ENSG00000261657', 'ENSG00000228741'])
 
+def test_in_omim():
+    str_df = pd.read_csv(str_file, sep='\t')
+    str_annotated = annotateSTRs(str_df, annotation_mini, disease_bed, tss_file = tss_file)
+    in_omim(str_annotated, omim_file)['in_omim'] == [True, True, False]
+    print(str_annotated)
+
 def test_annotateSTRs():
     bed_file=disease_bed
     str_df = pd.read_csv(str_file, sep='\t')
@@ -131,7 +137,7 @@ def test_dedup_annotations():
     str_df = pd.read_csv(str_file_annotated, sep='\t')
     str_df_dedup = dedup_annotations(str_df)
     str_df_dedup.to_csv('tmp-dedup.tsv', sep='\t', index = False)
-    assert len(str_df_dedup.index) == 2
+    assert len(str_df_dedup.index) == 3
 
 @pytest.mark.parametrize("str_dict, expected", [
     ({'outlier': [5, 10], 'bpInsertion': [100, 40]},

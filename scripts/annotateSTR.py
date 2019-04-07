@@ -7,6 +7,7 @@ import sys
 import os
 import gzip
 import toolz
+import numpy as np
 
 import warnings
 with warnings.catch_warnings():
@@ -369,7 +370,8 @@ def sortSTRs(str_df):
     return(str_df.sort_values(['outlier', 'bpInsertion'], ascending=[False, False]))
 
 def annotate_tss(str_df, tss_gff):
-    """
+    """Annotate a STRetch tsv file with the gene names and signed distance to
+    the closest transciption start site (TSS)
     """
     tss_annotated = annotate_gff(str_df, tss_gff, command = 'closest',
         keep_cols=['transcript_name', 'distance'], col_prefix = 'tss_')
@@ -377,6 +379,10 @@ def annotate_tss(str_df, tss_gff):
     tss_annotated = tss_annotated.rename(
         columns={'transcript_name': 'closest_TSS_transcript_name',
         'distance': 'closest_TSS_distance'})
+    # Set to NA where no closest TSS is annotated
+    tss_annotated['closest_TSS_distance'].loc[pd.isna(
+        tss_annotated['closest_TSS_transcript_name'])] = np.nan
+
     return tss_annotated
 
 def parse_omim(omim_file):
@@ -390,6 +396,9 @@ def parse_omim(omim_file):
     omim_df = pd.read_csv(omim_file, sep='\t', comment='#',
         names = ['mim_number', 'mim_entry_type', 'entrez_gene_id',
         'hgnc_gene_symbol', 'ensembl_gene_id'])
+    # Replace empty strings with NA XXX necessary?
+    #omim_df.replace('', np.nan)
+
     return omim_df.loc[omim_df['mim_entry_type'] == 'gene']
 
 def parse_biomart_omim(omim_file):
@@ -412,6 +421,17 @@ def parse_biomart_omim(omim_file):
     omim_df = omim_df.loc[omim_df['mim_gene_id'].notna()]
     return omim_df
 
+def in_omim(str_annotated, omim_file):
+    omim_df = parse_omim(omim_file)
+    # check if gene_id in omim_df['ensembl_gene_id']
+    base_gene_id = str_annotated['gene_id'].apply(lambda x: str(x).split('.')[0])
+    gene_id_in_omim = np.isin(base_gene_id, omim_df['ensembl_gene_id'])
+    # check if gene_name in omim_df['hgnc_gene_symbol']
+    gene_name_in_omim = np.isin(str_annotated['gene_name'], omim_df['hgnc_gene_symbol'])
+    # either gene_id or gene_name in omim
+    str_annotated['in_omim'] = gene_id_in_omim | gene_name_in_omim
+    return(str_annotated)
+
 #XXX make path_bed optional?
 def annotateSTRs(str_df, annfile, path_bed, tss_file, omim_file=None):
     """Take a STRetch results file and annotate it with a gene annotation file
@@ -432,14 +452,7 @@ def annotateSTRs(str_df, annfile, path_bed, tss_file, omim_file=None):
 
     # Check if annotated genes are in OMIM
     if omim_file:
-        omim_df = parse_omim(omim_file)
-        # check if gene_id in omim_df['ensembl_gene_id']
-        base_gene_id = str_annotated['gene_id'].apply(lambda x: str(x).split('.')[0])
-        gene_id_in_omim = base_gene_id.isin(omim_df['ensembl_gene_id'])
-        # check if gene_name in omim_df['hgnc_gene_symbol']
-        gene_name_in_omim = str_annotated['gene_name'].isin(omim_df['hgnc_gene_symbol'])
-        # either gene_id or gene_name in omim
-        str_annotated['in_omim'] = gene_id_in_omim | gene_name_in_omim
+        str_annotated = in_omim(str_annotated, omim_file)
         # check if TSS is in omim? if so move this to below tss annotation
 
     # annotate with TSSs
