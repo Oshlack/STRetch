@@ -11,7 +11,8 @@ annotation_file = 'test_data/gencode.v19.annotation.introns.gff3.gz'
 annotation_mini = 'test_data/gencode.v19.annotation.introns.mini.gff3'
 tss_file = 'test_data/gencode.v19.annotation.TSS.gff'
 disease_bed = 'test_data/hg19.STR_disease_loci.bed'
-omim_file = 'test_data/mim2gene.txt'
+#omim_file = 'test_data/mim2gene.txt'
+omim_file = 'test_data/biomart_GRCh37.p13_omim.tsv'
 
 @pytest.mark.parametrize("s, prefix, expected", [
     ('new_colname', 'new_', 'colname'),
@@ -113,19 +114,23 @@ def test_annotate_bed():
     )
 
 def test_parse_omim():
-    omim_df = parse_omim(omim_file)
+    omim_df = parse_omim('test_data/mim2gene.txt')
     omim_df.to_csv('omim_genes.tsv', sep='\t', index = False)
 
 def test_parse_biomart_omim():
     omim_df = parse_biomart_omim('test_data/biomart_GRCh37.p13_omim.tsv')
-    assert np.array_equal(omim_df['gene_id'][:2],
-        ['ENSG00000261657', 'ENSG00000228741'])
+    #print(omim_df['ensembl_gene_id'][:2])
+    assert np.array_equal(omim_df['ensembl_gene_id'][:3],
+        ['ENSG00000261577', 'ENSG00000261577', 'ENSG00000261258'])
 
 def test_in_omim():
     str_df = pd.read_csv(str_file, sep='\t')
     str_annotated = annotateSTRs(str_df, annotation_mini, disease_bed, tss_file = tss_file)
-    in_omim(str_annotated, omim_file)['in_omim'] == [True, True, False]
+    str_annotated_omim = in_omim(str_annotated, omim_file)
     print(str_annotated)
+    print(str_annotated_omim)
+    str_annotated_omim['in_omim'] == [True, True, False]
+
 
 def test_annotateSTRs():
     bed_file=disease_bed

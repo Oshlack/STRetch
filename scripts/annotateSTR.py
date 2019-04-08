@@ -395,11 +395,15 @@ def parse_omim(omim_file):
     """
     omim_df = pd.read_csv(omim_file, sep='\t', comment='#',
         names = ['mim_number', 'mim_entry_type', 'entrez_gene_id',
-        'hgnc_gene_symbol', 'ensembl_gene_id'])
+        'gene_name', 'ensembl_gene_id'])
     # Replace empty strings with NA XXX necessary?
     #omim_df.replace('', np.nan)
+    # Only keep gene entries
+    omim_df = omim_df.loc[omim_df['mim_entry_type'] == 'gene']
+    # Only keep genes with mim accession numbers XXX required?
+    omim_df = omim_df.loc[omim_df['mim_number'].notna()]
 
-    return omim_df.loc[omim_df['mim_entry_type'] == 'gene']
+    return omim_df
 
 def parse_biomart_omim(omim_file):
     """Parse tsv file downloaded from biomart with contains the minimum columns:
@@ -412,22 +416,24 @@ def parse_biomart_omim(omim_file):
     """
     omim_df = pd.read_csv(omim_file, header = 0, sep='\t', dtype = str)
     omim_df = omim_df.rename(columns={'Gene name': 'gene_name',
-        'Gene stable ID': 'gene_id',
+        'Gene stable ID': 'ensembl_gene_id',
         'MIM gene accession': 'mim_gene_id',
         'MIM disease accession': 'mim_disease_id',
         'MIM morbid accession': 'mim_disease_id',
         })
     # Only keep genes that are have mim gene accessions
-    omim_df = omim_df.loc[omim_df['mim_gene_id'].notna()]
+    #omim_df = omim_df.loc[omim_df['mim_gene_id'].notna()]
+    # Only keep genes that are have mim disease accessions
+    omim_df = omim_df.loc[omim_df['mim_disease_id'].notna()]
     return omim_df
 
 def in_omim(str_annotated, omim_file):
     omim_df = parse_omim(omim_file)
-    # check if gene_id in omim_df['ensembl_gene_id']
+    # check if gene_id in omim_df
     base_gene_id = str_annotated['gene_id'].apply(lambda x: str(x).split('.')[0])
     gene_id_in_omim = np.isin(base_gene_id, omim_df['ensembl_gene_id'])
-    # check if gene_name in omim_df['hgnc_gene_symbol']
-    gene_name_in_omim = np.isin(str_annotated['gene_name'], omim_df['hgnc_gene_symbol'])
+    # check if gene_name in omim_df
+    gene_name_in_omim = np.isin(str_annotated['gene_name'], omim_df['gene_name'])
     # either gene_id or gene_name in omim
     str_annotated['in_omim'] = gene_id_in_omim | gene_name_in_omim
     return(str_annotated)
