@@ -380,8 +380,8 @@ def annotate_tss(str_df, tss_gff):
         columns={'transcript_name': 'closest_TSS_transcript_name',
         'distance': 'closest_TSS_distance'})
     # Set to NA where no closest TSS is annotated
-    tss_annotated['closest_TSS_distance'].loc[pd.isna(
-        tss_annotated['closest_TSS_transcript_name'])] = np.nan
+    tss_annotated.loc[pd.isna(tss_annotated['closest_TSS_transcript_name']),
+        'closest_TSS_distance'] = np.nan
 
     return tss_annotated
 
