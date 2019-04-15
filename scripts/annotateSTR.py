@@ -357,7 +357,12 @@ def dedup_annotations(str_df):
     str_df['feature'] = pd.Categorical(str_df['feature'], priority)
     str_df.sort_values(by=['feature','gene_id','transcript_id', 'pathogenic'], inplace=True)
     str_df['feature'] = str_df['feature'].astype(str)
-    str_df_dedup = str_df.groupby(id_columns).first().reset_index()
+    try:
+        str_df_dedup = str_df.groupby(id_columns).first().reset_index()
+    except KeyError as e:
+        if e.args[0] == 'sample':
+            id_columns = ['chrom', 'start', 'end', 'repeatunit']
+            str_df_dedup = str_df.groupby(id_columns).first().reset_index()
     return str_df_dedup[column_order]
 
 def sortSTRs(str_df):
