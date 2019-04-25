@@ -55,7 +55,21 @@ def get_sample(fullpath):
     basename = os.path.basename(fullpath)
     return(basename.split('.')[0])
 
-def parse_STRcov(filename):
+def old_parse_STRcov(filename):
+    """Parse all STR coverage"""
+    print(filename)
+    sample_id = get_sample(filename)
+    try:
+        cov_data = pd.read_table(filename, delim_whitespace = True,
+                            names = ['chrom', 'start', 'end', 'decoycov'])
+    except pd.io.common.EmptyDataError:
+        sys.exit('ERROR: file {0} was empty.\n'.format(filename))
+    cov_data['sample'] = sample_id
+    cov_data['repeatunit'] = [x.split('-')[1] for x in cov_data['chrom']]
+    cov_data = cov_data[['sample', 'repeatunit', 'decoycov']]
+    return(cov_data)
+
+def new_parse_STRcov(filename):
     """Parse all STR coverage"""
     sample_id = get_sample(filename)
     try:
@@ -66,6 +80,15 @@ def parse_STRcov(filename):
     cov_data['repeatunit'] = [x.split('-')[1] for x in cov_data['chrom']]
     cov_data = cov_data[['sample', 'repeatunit', 'decoycov', 'decoycov_pairs']]
     return(cov_data)
+
+def parse_STRcov(filename):
+    try:
+        cov_data = old_parse_STRcov(filename)
+        print(cov_data.columns)
+    except IndexError:
+        cov_data = new_parse_STRcov(filename)
+        print(cov_data.columns)
+    return cov_data
 
 def parse_locuscov(filename):
     """Parse locuscoverage data produced by identify_locus.py"""
@@ -380,6 +403,7 @@ def main():
     write_data = locus_totals[['chrom', 'start', 'end',
                                     'sample', 'repeatunit', 'reflen',
                                     'locuscoverage', 'total_assigned',
+                                    'total_assigned_log', 'genomecov',
                                     'outlier', 'p_adj',
                                     'bpInsertion', 'repeatUnits'
                                     ]]
