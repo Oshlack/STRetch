@@ -8,6 +8,8 @@ import os
 import gzip
 import toolz
 import numpy as np
+import itertools
+from decoy_STR import normalise_str
 
 import warnings
 with warnings.catch_warnings():
@@ -522,6 +524,7 @@ def main(raw_args):
         str_reader = pd.read_csv(str_fhandle, sep='\t', chunksize=chunk_size)
         header_written = False
         for str_df in str_reader:
+            str_df['motif'] = str_df['motif'].map(normalise_str) # Normalise the STR motif
             annotated_df = annotateSTRs(str_df, annfile, pathfile,
                 tss_file, omim_file)
             # delete file if it exists (to avoid appending an old one)
