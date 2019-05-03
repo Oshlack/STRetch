@@ -372,7 +372,10 @@ def sortSTRs(str_df):
     Returns:
         pandas.DataFrame
     """
-    return(str_df.sort_values(['outlier', 'bpInsertion'], ascending=[False, False]))
+    try:
+        return(str_df.sort_values(['outlier', 'bpInsertion'], ascending=[False, False]))
+    except KeyError:
+        return(str_df)
 
 def annotate_tss(str_df, tss_gff):
     """Annotate a STRetch tsv file with the gene names and signed distance to
