@@ -11,7 +11,8 @@ dependencies:
 - pandas
 - statsmodels
 - scikit-learn
-- scipy
+# pinning scipy to avoid factorial import error, until statsmodels fixes it
+- scipy=1.2
 - numpy
 - pybedtools
 # only required for development
