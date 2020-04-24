@@ -11,7 +11,10 @@ load 'pipeline_config.groovy'
 // Load Bpipe pipeline stages
 load 'pipeline_stages.groovy'
 
-input_type='bam'
+if(args.any { it.endsWith('.cram') })
+    input_type = 'cram'
+else
+    input_type='bam'
 
 inputs "$input_type" : "Please supply one or more $input_type files to process"
 
