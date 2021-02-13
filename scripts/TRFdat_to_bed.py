@@ -35,7 +35,7 @@ def main():
                             int(splitline[0])
                         except ValueError:
                             continue
-                        start = splitline[0]
+                        start = str(int(splitline[0]) - 1)
                         end = splitline[1]
                         motif = splitline[13]
                         copynum = splitline[3]
