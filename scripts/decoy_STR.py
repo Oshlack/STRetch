@@ -6,7 +6,6 @@ This can be used as a decoy for STR reads to map to.
 import sys
 from argparse import (ArgumentParser, FileType)
 from Bio.Seq import Seq
-from Bio.Alphabet import generic_dna
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 import itertools
@@ -55,7 +54,7 @@ def self_and_rev_complement(in_dna):
     all_possible = [in_dna]
 
     # Get reverse complement
-    dna = Seq(in_dna, generic_dna)
+    dna = Seq(in_dna)
     rev_complement = str(dna.reverse_complement())
     all_possible.append(rev_complement)
     return(all_possible)
@@ -104,8 +103,7 @@ def write_decoys(outstream, seqlength, repeatunits):
             nrepeats = int(seqlength / RUlen + RUlen)
             sequence = ''.join(itertools.repeat(RU, nrepeats))[:seqlength]
 
-        record = SeqRecord(Seq('{}'.format(sequence),
-                        generic_dna), id='STR-{}'.format(RU), description = '')
+        record = SeqRecord(Seq('{}'.format(sequence)), id='STR-{}'.format(RU), description = '')
         SeqIO.write(record, outstream, "fasta")
 
 def main(raw_args):
