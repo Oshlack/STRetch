@@ -71,9 +71,9 @@ function picard_install {
 }
 
 function download_hg19 {
-    wget --no-check-certificate -O $refdir/reference-data.zip https://ndownloader.figshare.com/articles/4658701?private_link=1a39be9282c90c4860cd
-    unzip $refdir/reference-data.zip -d $refdir
-    rm $refdir/reference-data.zip
+    wget --no-check-certificate -O $refdir/reference-data.tar.gz https://home.chpc.utah.edu/~u6026198/hg19.STRling.bundle.tar.gz
+    tar -xf $refdir/reference-data.tar.gz -C $refdir
+    rm $refdir/reference-data.tar.gz
 }
 
 #populate toolspec
@@ -177,7 +177,7 @@ done
 echo "**********************************************************"
 
 #check for reference data
-if [ ! -f $refdir/*dedup.sorted.bed ] ; then
+if [ ! -f $refdir/hg19.PCRfreeWGS_143_STRetch_controls.tsv ] ; then
     echo -n "WARNING: reference files could not be found!!!! "
     echo "You will need to download them manually, then add the path to $toolspec"
 else
