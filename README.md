@@ -20,3 +20,4 @@ sequencing data, although size estimates should be interpreted with caution.
 
 Please see the [STRetch user guide](https://github.com/Oshlack/STRetch/wiki)
 for installation and usage instructions.
+
