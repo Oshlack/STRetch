@@ -1,0 +1,69 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+    
+    # Runs a single command using the runners shell
+      - name: Install STRetch 
+        run: |
+          ./.testing/install-ci.sh
+          mkdir test
+          cp reference-data/SCA8_region.bed test/
+
+    
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      STRetch: $GITHUB_WORKSPACE
+
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+
+      - name: End to end test
+        run: |
+          cd $STRetch/test/
+          ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
+      
+      
+      - name: Unit tests
+        run: |
+          cd $STRetch/scripts/tests/
+          source $STRetch/tools/miniconda/bin/activate $STRetch/tools/miniconda/envs/STR
+          python -m pytest test_*.py
+
+      - name: View output files
+        run: |
+          cd $STRetch/test/
+          diff STRs.tsv ../.testing/STRs.benchmark.tsv
+          head *.locus_counts *.STR_counts *.median_cov
+          head *.tsv
+          
+          
+      - name: Calculate and display code coverage
+        run: |
+          cd $STRetch/scripts/tests/
+          coverage run -m pytest test_*.py
+          bash <(curl -s https://codecov.io/bash) -s .
+          
+      
