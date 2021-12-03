@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Oshlack/STRetch.svg?branch=master)](https://travis-ci.org/Oshlack/STRetch)
+[![CI](https://github.com/Oshlack/STRetch/actions/workflows/main.yml/badge.svg)](https://github.com/Oshlack/STRetch/actions/workflows/main.yml)
 [![codecov](https://codecov.io/github/Oshlack/STRetch/branch/master/graphs/badge.svg)](https://codecov.io/github/Oshlack/STRetch)
 
 
