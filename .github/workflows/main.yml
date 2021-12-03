@@ -47,6 +47,7 @@ jobs:
         run: |
           echo $STRetch
           pwd
+          ls
           cd $STRetch/test/
           ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
       
