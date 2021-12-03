@@ -30,7 +30,10 @@ jobs:
           cp reference-data/SCA8_region.bed test/
           pwd
           ls
-
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build_dir
+          path: . 
     
   test:
     needs: build
@@ -38,7 +41,10 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    
+      - uses: actions/download-artifact@v2
+        with:
+          name: build_dir
+          path: .
       - name: "Set environmental variables"
         run: |
           echo "STRetch=$GITHUB_WORKSPACE" >> $GITHUB_ENV
