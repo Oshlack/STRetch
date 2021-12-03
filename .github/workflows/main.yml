@@ -33,13 +33,14 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    env:
-      STRetch: $GITHUB_WORKSPACE
-
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-
+    
+      - name: "Set environmental variables"
+        run: |
+          echo "STRetch=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          
       - name: End to end test
         run: |
           cd $STRetch/test/
