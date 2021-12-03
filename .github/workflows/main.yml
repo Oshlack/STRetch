@@ -28,6 +28,8 @@ jobs:
           ./.testing/install-ci.sh
           mkdir test
           cp reference-data/SCA8_region.bed test/
+          pwd
+          ls
 
     
   test:
@@ -43,6 +45,8 @@ jobs:
           
       - name: End to end test
         run: |
+          echo $STRetch
+          pwd
           cd $STRetch/test/
           ../tools/bin/bpipe run ../pipelines/STRetch_exome_pipeline.groovy ../test-data/*.fastq.gz
       
