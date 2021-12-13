@@ -60,6 +60,7 @@ jobs:
           
       - name: Calculate and display code coverage
         run: |
+          source $STRetch/tools/miniconda/bin/activate $STRetch/tools/miniconda/envs/STR
           cd $STRetch/scripts/tests/
           coverage run -m pytest test_*.py
           bash <(curl -s https://codecov.io/bash) -s .
